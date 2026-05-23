@@ -1,7 +1,7 @@
-pub mod user_account;
-pub mod invoice;
-pub mod receipt;
+pub mod payout_receipt;
+pub mod payout_run;
+pub mod treasury;
 
-pub use user_account::*;
-pub use invoice::*;
-pub use receipt::*;
+pub use payout_receipt::*;
+pub use payout_run::*;
+pub use treasury::*;

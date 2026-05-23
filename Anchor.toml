@@ -1,5 +1,6 @@
 [toolchain]
 package_manager = "yarn"
+anchor_version = "0.31.0"
 
 [features]
 resolution = true
@@ -13,11 +14,12 @@ url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
-# Windows
-wallet = '~\.config\solana\id.json'
-# Linux
 wallet = '~/.config/solana/id.json'
+
+[test.validator]
+bind_address = "127.0.0.1"
+rpc_port = 18998
 
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/*.ts"
+test = "cargo test -p cipherpay --test payout_protocol"

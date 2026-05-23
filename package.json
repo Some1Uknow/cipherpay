@@ -2,7 +2,7 @@
   "name": "cipherpay",
   "packageManager": "yarn@4.6.0",
   "scripts": {
-    "test": "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/*.ts"
+    "test": "cargo test -p cipherpay --test payout_protocol"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",

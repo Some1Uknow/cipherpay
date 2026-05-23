@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es2020", // Modern JavaScript output
+    "module": "commonjs", // CommonJS for Node compatibility
+    "strict": true, // Enable all strict type-checking
+    "esModuleInterop": true, // Allow default imports from CommonJS
+    "moduleResolution": "node", // Resolve modules like Node does
+    "resolveJsonModule": true, // Allow importing JSON files
+    "types": [
+      "node",
+      "mocha",
+      "jest"
+    ], // Add Node + Mocha global types
+    "outDir": "dist" // Output directory for compiled files
+  },
+  "include": [
+    "tests/**/*.ts"
+  ] // Include your test files
+}

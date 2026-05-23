@@ -24,6 +24,9 @@ type ServerConfig = {
   appUrl: string;
   solanaCluster: string;
   solanaRpcUrl: string;
+  phase1TokenMint: string;
+  phase1TokenSymbol: string;
+  phase1TokenDecimals: number;
   supportedWallets: string[];
   databaseUrl: string;
   sessionCookieName: string;

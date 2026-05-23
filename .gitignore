@@ -8,3 +8,4 @@ test-ledger
 *wallet.json
 docs/
 cipherpay-*.png
+.playwright-mcp/

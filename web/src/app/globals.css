@@ -13,7 +13,6 @@
   --brand-ink-deep: #2b3440;
   --brand-muted-ink: #6b7280;
 
-  /* Accent (keep CipherPay blue) */
   --brand-primary: #0e5bff;
   --brand-primary-dark: #0a49ce;
   --brand-primary-gradient-start: #0e5bff;
@@ -23,7 +22,6 @@
   /* Neumorphism avoids borders; edges are defined by shadows */
   --brand-border: transparent;
 
-  /* Status */
   --brand-success: #0f9f6e;
   --brand-warning: #b7791f;
   --brand-danger: #d14343;
@@ -32,7 +30,7 @@
   --shadow-light: rgba(255, 255, 255, 0.55);
   --shadow-dark: rgba(163, 177, 198, 0.65);
 
-  /* Shadow presets (used by custom CSS overrides) */
+  /* Shadow presets */
   --shadow-neo: 9px 9px 16px var(--shadow-dark), -9px -9px 16px var(--shadow-light);
   --shadow-neo-hover: 12px 12px 20px rgba(163, 177, 198, 0.7), -12px -12px 20px rgba(255, 255, 255, 0.6);
   --shadow-neo-sm: 5px 5px 10px var(--shadow-dark), -5px -5px 10px var(--shadow-light);

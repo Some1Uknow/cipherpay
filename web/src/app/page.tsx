@@ -4,7 +4,7 @@ import Link from "next/link";
 import { LandingSignInCTA } from "@/components/auth/LandingSignInCTA";
 import { WalletSignInButton } from "@/components/auth/WalletSignInButton";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type LandingPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

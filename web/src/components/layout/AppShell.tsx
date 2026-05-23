@@ -1,98 +1,207 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { WorkspaceWalletControl } from "@/components/layout/WorkspaceWalletControl";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { href: "/pay", label: "Pay" },
-  { href: "/history", label: "History" },
+  {
+    href: "/pay",
+    label: "Pay",
+    icon: PayIcon,
+  },
+  {
+    href: "/history",
+    label: "History",
+    icon: HistoryIcon,
+  },
 ] as const;
+
+function PayIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 7.5h16" />
+      <path d="M6.5 4.5h11A2.5 2.5 0 0 1 20 7v10a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17V7A2.5 2.5 0 0 1 6.5 4.5Z" />
+      <path d="M15 13h2.5" />
+    </svg>
+  );
+}
+
+function HistoryIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <path d="M3 4v5h5" />
+      <path d="M12 8v5l3 2" />
+    </svg>
+  );
+}
+
+function MenuIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" {...props}>
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h10" />
+    </svg>
+  );
+}
+
+function ChevronIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  );
+}
+
+function usePageMeta(pathname: string) {
+  const activeItem =
+    navigation.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`)) ?? navigation[0];
+
+  return {
+    label: activeItem.label,
+  };
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { label } = usePageMeta(pathname);
+  const [collapsed, setCollapsed] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const stored = window.localStorage.getItem("cipherpay-sidebar-collapsed");
+    if (stored === "true") {
+      setCollapsed(true);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    window.localStorage.setItem("cipherpay-sidebar-collapsed", collapsed ? "true" : "false");
+  }, [collapsed]);
+
+  React.useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   return (
     <div className="min-h-dvh bg-transparent text-[var(--brand-ink)]">
-      <header className="sticky top-0 z-30 border-b border-[rgba(226,232,240,0.85)] bg-[rgba(250,250,250,0.92)] backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center gap-4">
-            <Link href="/pay" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[linear-gradient(135deg,var(--brand-primary-gradient-start),var(--brand-primary-gradient-end))] text-sm font-semibold text-white shadow-neoSm">
-                CP
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">CipherPay</p>
-                <p className="truncate text-xs text-[var(--brand-muted-ink)]">Private payout runs</p>
-              </div>
-            </Link>
+      <div className="mx-auto max-w-[1440px] px-3 pb-6 pt-4 sm:px-5 lg:px-6">
+        <header className="sticky top-4 z-40">
+          <div className="mx-auto flex items-center justify-between gap-3 rounded-full bg-[var(--brand-surface)] px-3 py-2.5 shadow-neo sm:px-4">
+            <div className="flex min-w-0 items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-11 w-11 rounded-full p-0 lg:hidden"
+                onClick={() => setMobileOpen((value) => !value)}
+                aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+              >
+                <MenuIcon className="h-4.5 w-4.5" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="hidden h-11 w-11 rounded-full p-0 lg:inline-flex"
+                onClick={() => setCollapsed((value) => !value)}
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <ChevronIcon className={cn("h-4.5 w-4.5 transition-transform duration-200", collapsed ? "rotate-180" : "")} />
+              </Button>
 
-            <nav className="hidden items-center gap-2 md:flex">
+              <Link href="/pay" className="flex min-w-0 items-center gap-3 rounded-full px-1.5 py-1">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-primary-gradient-start),var(--brand-primary-gradient-end))] text-sm font-semibold text-white shadow-neoSm">
+                  CP
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold tracking-[-0.03em] text-[var(--brand-ink)]">CipherPay</p>
+                  <p className="truncate text-xs text-[var(--brand-muted-ink)]">Private payout workspace</p>
+                </div>
+              </Link>
+            </div>
+
+            <div className="hidden min-w-0 items-center gap-3 lg:flex">
+              <Badge tone="blue" className="h-10 px-4 shadow-neoInsetSm">
+                Devnet
+              </Badge>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Badge tone="blue" className="hidden h-10 px-4 shadow-neoInsetSm sm:inline-flex lg:hidden">
+                {label}
+              </Badge>
+              <WorkspaceWalletControl />
+            </div>
+          </div>
+        </header>
+
+        <div className="relative mt-5 flex gap-4 lg:gap-5">
+          {mobileOpen ? (
+            <button
+              type="button"
+              className="fixed inset-0 z-20 bg-[rgba(15,23,42,0.24)] backdrop-blur-[2px] lg:hidden"
+              aria-label="Close navigation"
+              onClick={() => setMobileOpen(false)}
+            />
+          ) : null}
+
+          <aside
+            className={cn(
+              "fixed inset-y-[5.5rem] left-3 z-30 flex w-[250px] flex-col rounded-[30px] bg-[var(--brand-surface)] p-3 shadow-neo transition-transform duration-300 lg:sticky lg:top-[6rem] lg:h-[calc(100dvh-7rem)] lg:translate-x-0",
+              mobileOpen ? "translate-x-0" : "-translate-x-[120%]",
+              collapsed ? "lg:w-[92px]" : "lg:w-[250px]",
+            )}
+          >
+            <div className="h-1" />
+
+            <nav className="grid gap-2">
               {navigation.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const Icon = item.icon;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color,border-color] duration-200 ease-out",
+                      "group flex items-center gap-3 rounded-[24px] px-3 py-3 transition-all duration-200 ease-out",
                       active
-                        ? "bg-[rgba(0,82,255,0.08)] text-[var(--brand-primary)]"
-                        : "text-[var(--brand-muted-ink)] hover:bg-[var(--brand-surface-muted)] hover:text-[var(--brand-ink)]",
+                        ? "bg-[var(--brand-surface)] text-[var(--brand-ink)] shadow-neoInsetSm"
+                        : "bg-transparent text-[var(--brand-muted-ink)] hover:bg-[var(--brand-surface)] hover:shadow-neoSm hover:text-[var(--brand-ink)]",
+                      collapsed ? "justify-center px-0" : "",
                     )}
                   >
-                    {item.label}
+                    <span
+                      className={cn(
+                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
+                        active
+                          ? "bg-[var(--brand-surface)] text-[var(--brand-primary)] shadow-neoInsetSm"
+                          : "bg-[var(--brand-surface)] text-[var(--brand-muted-ink)] shadow-neoSm group-hover:text-[var(--brand-primary)]",
+                      )}
+                    >
+                      <Icon className="h-4.5 w-4.5" />
+                    </span>
+                    {!collapsed ? (
+                      <span className="block text-sm font-semibold tracking-[-0.02em]">{item.label}</span>
+                    ) : null}
                   </Link>
                 );
               })}
             </nav>
-          </div>
+          </aside>
 
-          <div className="flex items-center gap-2">
-            <Badge tone="blue" className="hidden sm:inline-flex">
-              Devnet
-            </Badge>
-            <div className="hidden sm:block">
-              <WalletMultiButton className="!h-10 !rounded-xl !px-4 !text-sm !font-medium" />
-            </div>
-            <form action="/api/auth/logout" method="post">
-              <Button variant="secondary" size="sm" type="submit">
-                Sign out
-              </Button>
-            </form>
+          <div className={cn("min-w-0 flex-1", collapsed ? "lg:pl-1" : "")}>
+            <main className="grid min-w-0 gap-5 rounded-[34px] bg-[var(--brand-surface)] p-4 shadow-neo sm:p-5 lg:p-6">
+              {children}
+            </main>
           </div>
         </div>
-
-        <div className="border-t border-[rgba(226,232,240,0.8)] md:hidden">
-          <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-2 sm:px-6 lg:px-8">
-            {navigation.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color] duration-200 ease-out",
-                    active
-                      ? "bg-[rgba(0,82,255,0.08)] text-[var(--brand-primary)]"
-                      : "bg-white text-[var(--brand-muted-ink)]",
-                  )}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <div className="grid gap-6">{children}</div>
-      </main>
+      </div>
     </div>
   );
 }

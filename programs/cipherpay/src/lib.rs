@@ -9,7 +9,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("C3qyHGtVXDTDqKR7ng1Q4ikYK2mKxyqtZLcWpgA1fKZV");
+declare_id!("HWU77LBoeg7XFpADmc4poPzY1cyVKdVdCygef7xsUMgj");
 
 #[program]
 pub mod cipherpay {
@@ -27,27 +27,50 @@ pub mod cipherpay {
         ctx: Context<CreatePayoutRun>,
         run_number: u64,
         expected_item_count: u32,
-        total_amount: u64,
+        total_lamports: u64,
         manifest_hash: [u8; 32],
     ) -> Result<()> {
         instructions::create_payout_run::handler(
             ctx,
             run_number,
             expected_item_count,
-            total_amount,
+            total_lamports,
             manifest_hash,
         )
+    }
+
+    pub fn create_payout_item(
+        ctx: Context<CreatePayoutItem>,
+        item_index: u32,
+        recipient: Pubkey,
+        lamports: u64,
+    ) -> Result<()> {
+        instructions::create_payout_item::handler(ctx, item_index, recipient, lamports)
+    }
+
+    pub fn fund_payout_run(ctx: Context<FundPayoutRun>) -> Result<()> {
+        instructions::fund_payout_run::handler(ctx)
     }
 
     pub fn execute_payout_item(
         ctx: Context<ExecutePayoutItem>,
         item_index: u32,
-        amount: u64,
     ) -> Result<()> {
-        instructions::execute_payout_item::handler(ctx, item_index, amount)
+        instructions::execute_payout_item::handler(ctx, item_index)
+    }
+
+    pub fn execute_payout_items<'info>(
+        ctx: Context<'_, '_, 'info, 'info, ExecutePayoutItems<'info>>,
+        item_indexes: Vec<u32>,
+    ) -> Result<()> {
+        instructions::execute_payout_items::handler(ctx, item_indexes)
     }
 
     pub fn cancel_payout_run(ctx: Context<CancelPayoutRun>) -> Result<()> {
         instructions::cancel_payout_run::handler(ctx)
+    }
+
+    pub fn refund_payout_run(ctx: Context<RefundPayoutRun>) -> Result<()> {
+        instructions::refund_payout_run::handler(ctx)
     }
 }

@@ -12,7 +12,7 @@ export default async function PayPage() {
       <PageHeader
         eyebrow="Pay"
         title="Prepare payouts"
-        description="Add rows, review totals, and send from one workspace. The interface should feel faster than the task itself."
+        description="Draft rows, review totals, and export a clean run."
         badge="Workspace"
       />
       <PayoutRunWorkspace walletAddress={session.walletAddress} initialRun={initialRun} />

@@ -2,7 +2,8 @@
   "name": "cipherpay",
   "packageManager": "yarn@4.6.0",
   "scripts": {
-    "test": "cargo test -p cipherpay --test payout_protocol"
+    "test": "cargo test -p cipherpay --test payout_protocol",
+    "devnet:smoke": "ts-node scripts/devnet-payout-smoke.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",

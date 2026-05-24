@@ -3,8 +3,8 @@ import { PublicKey } from "@solana/web3.js";
 import type { PayoutRowDraft, PayoutRowIssue } from "@/lib/payout-runs/types";
 
 export const CSV_SAMPLE = `recipient_name,wallet_address,amount
-Ava Patel,9B3Y2dXhN6LQW8dyL5o6z8UZqv2q1X3dQ5bTA2sQkz4J,1850
-Northline Studio,GW91mC6M7xTnN4aMvQq5jQ9nG2L3w4LfA1uQw8fLm9rA,3200`;
+Ava Patel,9B3Y2dXhN6LQW8dyL5o6z8UZqv2q1X3dQ5bTA2sQkz4J,0.01
+Northline Studio,GW91mC6M7xTnN4aMvQq5jQ9nG2L3w4LfA1uQw8fLm9rA,0.02`;
 
 export function createEmptyPayoutRow(): PayoutRowDraft {
   return {
@@ -38,7 +38,12 @@ export function serializeDraft(mode: string, rows: PayoutRowDraft[]): string {
   });
 }
 
-export function validateRows(rows: PayoutRowDraft[]): PayoutRowIssue[] {
+export function validateRows(
+  rows: PayoutRowDraft[],
+  options: { symbol?: string; decimals?: number } = {},
+): PayoutRowIssue[] {
+  const symbol = options.symbol ?? "USDC";
+  const decimals = options.decimals ?? 2;
   const duplicates = new Set<string>();
   const seen = new Set<string>();
 
@@ -74,8 +79,8 @@ export function validateRows(rows: PayoutRowDraft[]): PayoutRowIssue[] {
         issues.amount = "Use a number like 1250 or 1250.50.";
       } else if (normalized <= 0) {
         issues.amount = "Amount must be greater than zero.";
-      } else if (!/^\d+(\.\d{1,2})?$/.test(row.amount.trim())) {
-        issues.amount = "Use up to 2 decimal places for USDC.";
+      } else if (!new RegExp(`^\\d+(\\.\\d{1,${decimals}})?$`).test(row.amount.trim())) {
+        issues.amount = `Use up to ${decimals} decimal places for ${symbol}.`;
       }
     }
 

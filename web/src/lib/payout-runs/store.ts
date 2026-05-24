@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getDb } from "@/lib/db";
+import { publicConfig } from "@/lib/public-config";
 import type { PersistedPayoutRun, PayoutRowDraft, PayoutRunEntryMode, PayoutRunStatus } from "@/lib/payout-runs/types";
 import { isRowFilled, validateRows } from "@/lib/payout-runs/validation";
 
@@ -59,7 +60,10 @@ function mapRun(run: RunRow, items: ItemRow[]): PersistedPayoutRun {
 
 function summarizeRows(rows: PayoutRowDraft[]) {
   const filledRows = rows.filter(isRowFilled);
-  const issues = validateRows(filledRows);
+  const issues = validateRows(filledRows, {
+    symbol: publicConfig.phase1TokenSymbol,
+    decimals: publicConfig.phase1TokenDecimals,
+  });
   const total = filledRows.reduce((sum, row, index) => {
     if (Object.keys(issues[index] ?? {}).length > 0) return sum;
     const amount = Number(row.amount);
@@ -72,6 +76,14 @@ function summarizeRows(rows: PayoutRowDraft[]) {
   return { filledRows, total, status };
 }
 
+function formatStoredAmount(amount: number) {
+  return amount.toLocaleString("en-US", {
+    useGrouping: false,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: publicConfig.phase1TokenDecimals,
+  });
+}
+
 async function getItemsForRunIds(runIds: string[]): Promise<Map<string, ItemRow[]>> {
   if (runIds.length === 0) return new Map();
 
@@ -79,6 +91,7 @@ async function getItemsForRunIds(runIds: string[]): Promise<Map<string, ItemRow[
   const result = await db.query<ItemRow>(
     `
       select id, run_id, position, recipient_name, recipient_wallet_address, amount_input
+        , row_status, tx_signature, error_message
       from payout_run_items
       where run_id = any($1::uuid[])
       order by position asc
@@ -167,7 +180,7 @@ export async function upsertDraftPayoutRun(params: {
             and user_id = $7
           returning *
         `,
-        [params.runId, params.walletAddress, params.entryMode, status, total.toFixed(2), filledRows.length, params.userId],
+        [params.runId, params.walletAddress, params.entryMode, status, formatStoredAmount(total), filledRows.length, params.userId],
       );
       run = runResult.rows[0];
     }
@@ -186,7 +199,7 @@ export async function upsertDraftPayoutRun(params: {
           values ($1, $2, $3, $4, $5, $6)
           returning *
         `,
-        [params.userId, params.walletAddress, params.entryMode, status, total.toFixed(2), filledRows.length],
+        [params.userId, params.walletAddress, params.entryMode, status, formatStoredAmount(total), filledRows.length],
       );
       run = runResult.rows[0];
     }
@@ -197,14 +210,17 @@ export async function upsertDraftPayoutRun(params: {
 
     await client.query(`delete from payout_run_items where run_id = $1`, [run.id]);
 
-    if (filledRows.length > 0) {
+    if (params.rows.length > 0) {
       const insertValues: string[] = [];
       const bindValues: Array<string | number> = [];
 
-      filledRows.forEach((row, index) => {
+      params.rows.forEach((row, index) => {
         const offset = index * 6;
         insertValues.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6})`);
-        const rowIssues = validateRows([row])[0];
+        const rowIssues = validateRows([row], {
+          symbol: publicConfig.phase1TokenSymbol,
+          decimals: publicConfig.phase1TokenDecimals,
+        })[0];
         bindValues.push(
           run!.id,
           index,

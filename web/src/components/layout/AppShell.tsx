@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -91,37 +92,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="min-h-dvh bg-transparent text-[var(--brand-ink)]">
-      <div className="mx-auto max-w-[1440px] px-3 pb-6 pt-4 sm:px-5 lg:px-6">
-        <header className="sticky top-4 z-40">
-          <div className="mx-auto flex items-center justify-between gap-3 rounded-full bg-[var(--brand-surface)] px-3 py-2.5 shadow-neo sm:px-4">
+    <div className="h-[100dvh] overflow-hidden bg-transparent text-[var(--brand-ink)]">
+      <div className="mx-auto flex h-full max-w-[1440px] flex-col px-3 pb-4 pt-4 sm:px-5 lg:px-6">
+        <header className="z-40 shrink-0">
+          <div className="mx-auto flex items-center justify-between gap-3 rounded-full bg-[var(--brand-surface)] px-3 py-2 shadow-neo sm:px-4">
             <div className="flex min-w-0 items-center gap-2">
               <Button
                 variant="secondary"
                 size="sm"
-                className="h-11 w-11 rounded-full p-0 lg:hidden"
+                className="h-10 w-10 rounded-full p-0 lg:hidden"
                 onClick={() => setMobileOpen((value) => !value)}
                 aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
               >
-                <MenuIcon className="h-4.5 w-4.5" />
+                <MenuIcon className="h-4 w-4" />
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                className="hidden h-11 w-11 rounded-full p-0 lg:inline-flex"
+                className="hidden h-10 w-10 rounded-full p-0 lg:inline-flex"
                 onClick={() => setCollapsed((value) => !value)}
                 aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
-                <ChevronIcon className={cn("h-4.5 w-4.5 transition-transform duration-200", collapsed ? "rotate-180" : "")} />
+                <ChevronIcon className={cn("h-4 w-4 transition-transform duration-200", collapsed ? "rotate-180" : "")} />
               </Button>
 
               <Link href="/pay" className="flex min-w-0 items-center gap-3 rounded-full px-1.5 py-1">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-primary-gradient-start),var(--brand-primary-gradient-end))] text-sm font-semibold text-white shadow-neoSm">
-                  CP
+                <div className="overflow-hidden rounded-xl shadow-neoSm">
+                  <Image src="/logo/cipherpay_logo.png" alt="CipherPay" width={36} height={36} className="h-9 w-9" priority />
                 </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold tracking-[-0.03em] text-[var(--brand-ink)]">CipherPay</p>
-                  <p className="truncate text-xs text-[var(--brand-muted-ink)]">Private payout workspace</p>
+                <div className="hidden min-w-0 sm:block">
+                  <Image
+                    src="/logo/cipherpay_branding.png"
+                    alt="CipherPay"
+                    width={180}
+                    height={36}
+                    className="h-7 w-auto"
+                    priority
+                  />
                 </div>
               </Link>
             </div>
@@ -141,7 +148,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <div className="relative mt-5 flex gap-4 lg:gap-5">
+        <div className="relative mt-4 flex flex-1 min-h-0 gap-4 lg:gap-5">
           {mobileOpen ? (
             <button
               type="button"
@@ -153,14 +160,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <aside
             className={cn(
-              "fixed inset-y-[5.5rem] left-3 z-30 flex w-[250px] flex-col rounded-[30px] bg-[var(--brand-surface)] p-3 shadow-neo transition-transform duration-300 lg:sticky lg:top-[6rem] lg:h-[calc(100dvh-7rem)] lg:translate-x-0",
+              "fixed bottom-4 left-3 top-[5.25rem] z-30 flex w-[240px] flex-col overflow-y-auto rounded-[30px] bg-[var(--brand-surface)] p-2.5 shadow-neo transition-transform duration-300 lg:sticky lg:top-0 lg:h-full lg:translate-x-0",
               mobileOpen ? "translate-x-0" : "-translate-x-[120%]",
-              collapsed ? "lg:w-[92px]" : "lg:w-[250px]",
+              collapsed ? "lg:w-[92px]" : "lg:w-[240px]",
             )}
           >
             <div className="h-1" />
 
-            <nav className="grid gap-2">
+            <nav className="grid gap-1.5">
               {navigation.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const Icon = item.icon;
@@ -169,7 +176,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "group flex items-center gap-3 rounded-[24px] px-3 py-3 transition-all duration-200 ease-out",
+                      "group flex items-center gap-3 rounded-[22px] px-2.5 py-2 transition-all duration-200 ease-out",
                       active
                         ? "bg-[var(--brand-surface)] text-[var(--brand-ink)] shadow-neoInsetSm"
                         : "bg-transparent text-[var(--brand-muted-ink)] hover:bg-[var(--brand-surface)] hover:shadow-neoSm hover:text-[var(--brand-ink)]",
@@ -178,13 +185,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <span
                       className={cn(
-                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
                         active
                           ? "bg-[var(--brand-surface)] text-[var(--brand-primary)] shadow-neoInsetSm"
                           : "bg-[var(--brand-surface)] text-[var(--brand-muted-ink)] shadow-neoSm group-hover:text-[var(--brand-primary)]",
                       )}
                     >
-                      <Icon className="h-4.5 w-4.5" />
+                      <Icon className="h-4 w-4" />
                     </span>
                     {!collapsed ? (
                       <span className="block text-sm font-semibold tracking-[-0.02em]">{item.label}</span>
@@ -195,8 +202,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </nav>
           </aside>
 
-          <div className={cn("min-w-0 flex-1", collapsed ? "lg:pl-1" : "")}>
-            <main className="grid min-w-0 gap-5 rounded-[34px] bg-[var(--brand-surface)] p-4 shadow-neo sm:p-5 lg:p-6">
+          <div className={cn("min-w-0 flex-1 min-h-0", collapsed ? "lg:pl-1" : "")}>
+            <main className="grid h-full min-w-0 gap-4 overflow-y-auto rounded-[34px] bg-[var(--brand-surface)] p-4 shadow-neo sm:p-5 lg:p-6">
               {children}
             </main>
           </div>

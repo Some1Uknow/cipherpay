@@ -4,7 +4,6 @@ use anchor_lang::prelude::*;
 #[derive(InitSpace)]
 pub struct Treasury {
     pub authority: Pubkey,
-    pub mint: Pubkey,
     pub bump: u8,
     pub paused: bool,
     pub next_run_number: u64,

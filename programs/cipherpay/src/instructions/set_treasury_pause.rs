@@ -11,7 +11,7 @@ pub struct SetTreasuryPause<'info> {
     #[account(
         mut,
         has_one = authority,
-        seeds = [Treasury::SEED_PREFIX, treasury.authority.as_ref(), treasury.mint.as_ref()],
+        seeds = [Treasury::SEED_PREFIX, treasury.authority.as_ref()],
         bump = treasury.bump
     )]
     pub treasury: Account<'info, Treasury>,

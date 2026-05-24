@@ -7,7 +7,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-cipherpay = "C3qyHGtVXDTDqKR7ng1Q4ikYK2mKxyqtZLcWpgA1fKZV"
+cipherpay = "HWU77LBoeg7XFpADmc4poPzY1cyVKdVdCygef7xsUMgj"
+
+[programs.devnet]
+cipherpay = "HWU77LBoeg7XFpADmc4poPzY1cyVKdVdCygef7xsUMgj"
 
 [registry]
 url = "https://api.apr.dev"

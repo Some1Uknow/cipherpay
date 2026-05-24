@@ -14,7 +14,7 @@ pub struct CreatePayoutRun<'info> {
     #[account(
         mut,
         has_one = authority,
-        seeds = [Treasury::SEED_PREFIX, treasury.authority.as_ref(), treasury.mint.as_ref()],
+        seeds = [Treasury::SEED_PREFIX, treasury.authority.as_ref()],
         bump = treasury.bump
     )]
     pub treasury: Account<'info, Treasury>,
@@ -33,7 +33,7 @@ pub fn handler(
     ctx: Context<CreatePayoutRun>,
     run_number: u64,
     expected_item_count: u32,
-    total_amount: u64,
+    total_lamports: u64,
     manifest_hash: [u8; 32],
 ) -> Result<()> {
     let treasury = &mut ctx.accounts.treasury;
@@ -46,22 +46,31 @@ pub fn handler(
         expected_item_count > 0,
         CipherpayError::InvalidExpectedItemCount
     );
-    require!(total_amount > 0, CipherpayError::InvalidTotalAmount);
+    require!(total_lamports > 0, CipherpayError::InvalidTotalAmount);
+    require!(
+        manifest_hash != [0_u8; 32],
+        CipherpayError::ManifestHashRequired
+    );
 
     let now = Clock::get()?.unix_timestamp;
     let payout_run = &mut ctx.accounts.payout_run;
     payout_run.treasury = treasury.key();
     payout_run.authority = treasury.authority;
-    payout_run.mint = treasury.mint;
     payout_run.run_number = run_number;
     payout_run.manifest_hash = manifest_hash;
     payout_run.status = PayoutRunStatus::Draft;
     payout_run.expected_item_count = expected_item_count;
+    payout_run.created_item_count = 0;
     payout_run.executed_item_count = 0;
-    payout_run.total_amount = total_amount;
-    payout_run.executed_amount = 0;
+    payout_run.total_lamports = total_lamports;
+    payout_run.created_lamports = 0;
+    payout_run.deposited_lamports = 0;
+    payout_run.executed_lamports = 0;
+    payout_run.refunded_lamports = 0;
+    payout_run.bump = ctx.bumps.payout_run;
     payout_run.created_at = now;
     payout_run.updated_at = now;
+    payout_run.funded_at = 0;
     payout_run.completed_at = 0;
     payout_run.cancelled_at = 0;
 
@@ -76,7 +85,7 @@ pub fn handler(
         run: payout_run.key(),
         run_number,
         expected_item_count,
-        total_amount,
+        total_lamports,
         manifest_hash,
     });
 

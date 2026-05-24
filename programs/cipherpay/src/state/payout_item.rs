@@ -2,20 +2,18 @@ use anchor_lang::prelude::*;
 
 #[account]
 #[derive(InitSpace)]
-pub struct PayoutReceipt {
-    pub treasury: Pubkey,
+pub struct PayoutItem {
     pub run: Pubkey,
-    pub item: Pubkey,
-    pub run_number: u64,
     pub item_index: u32,
-    pub authority: Pubkey,
     pub recipient: Pubkey,
     pub lamports: u64,
+    pub executed: bool,
+    pub created_at: i64,
     pub executed_at: i64,
     pub executed_slot: u64,
     pub bump: u8,
 }
 
-impl PayoutReceipt {
-    pub const SEED_PREFIX: &'static [u8] = b"receipt";
+impl PayoutItem {
+    pub const SEED_PREFIX: &'static [u8] = b"item";
 }

@@ -37,7 +37,7 @@ export function WalletDialog({ children, description, onClose, title }: WalletDi
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-label={title}>
       <button
         type="button"
-        className="absolute inset-0 bg-[rgba(16,33,58,0.34)] backdrop-blur-[10px]"
+        className="absolute inset-0 bg-[rgba(16,33,58,0.22)] backdrop-blur-[8px]"
         aria-label="Close"
         onClick={onClose}
       />

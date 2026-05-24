@@ -111,7 +111,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
         <div className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col px-6 py-7 sm:px-8 lg:px-10">
           <header className="flex items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-3">
-              <div className="hidden overflow-hidden rounded-2xl shadow-neoSm sm:block">
+              <div className="">
                 <Image
                   src="/logo/cipherpay_branding.png"
                   alt="CipherPay"
@@ -136,7 +136,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
                 On-chain private invoicing infrastructure
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-[var(--brand-muted-ink)] sm:text-xl">
-                Create and track invoices, pay in USDC, and keep outcomes easy to reconcile — with wallet-based sign-in and receipts you can audit.
+                Create payout runs, pay on devnet, and keep outcomes easy to reconcile with wallet-based sign-in and receipts you can audit.
               </p>
 
               <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">

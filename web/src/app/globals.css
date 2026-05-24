@@ -4,8 +4,8 @@
 
 :root {
   /* Neumorphism base surface */
-  --brand-surface: #e0e5ec;
-  --brand-surface-muted: #d7dde6;
+  --brand-surface: #e6ebf2;
+  --brand-surface-muted: #dde3ec;
   --brand-card: var(--brand-surface);
 
   /* Text */
@@ -28,7 +28,7 @@
 
   /* Shadow colors (RGBA for smooth blending) */
   --shadow-light: rgba(255, 255, 255, 0.55);
-  --shadow-dark: rgba(163, 177, 198, 0.65);
+  --shadow-dark: rgba(163, 177, 198, 0.55);
 
   /* Shadow presets */
   --shadow-neo: 9px 9px 16px var(--shadow-dark), -9px -9px 16px var(--shadow-light);
@@ -190,6 +190,42 @@ textarea {
   background: var(--brand-surface) !important;
   box-shadow: var(--shadow-neo-inset) !important;
   color: var(--brand-ink) !important;
+}
+
+.wallet-adapter-modal {
+  background: transparent !important;
+}
+
+.wallet-adapter-modal-overlay {
+  background: rgba(16,33,58,0.18) !important;
+  backdrop-filter: blur(10px);
+}
+
+.wallet-adapter-modal-container {
+  margin: 2rem !important;
+  min-height: calc(100dvh - 4rem) !important;
+}
+
+.wallet-adapter-modal-button-close {
+  background: var(--brand-surface) !important;
+  box-shadow: var(--shadow-neo-sm) !important;
+  border-radius: 999px !important;
+}
+
+.wallet-adapter-modal-button-close svg {
+  fill: var(--brand-muted-ink) !important;
+}
+
+.wallet-adapter-modal-button-close:hover svg {
+  fill: var(--brand-ink) !important;
+}
+
+.wallet-adapter-modal-title {
+  padding: 44px 32px 22px 32px !important;
+}
+
+.wallet-adapter-modal-list {
+  padding: 0 20px 22px 20px !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

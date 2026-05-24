@@ -10,12 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { publicConfig } from "@/lib/public-config";
-import { assertSourceBalance, buildPayoutTransaction, resolvePaymentContract } from "@/lib/payout-runs/execution";
+import { assertSourceBalance, buildPayoutRunTransactionPlan, resolvePaymentContract } from "@/lib/payout-runs/execution";
 import type { PersistedPayoutRun, PayoutRowDraft, PayoutRunEntryMode } from "@/lib/payout-runs/types";
 import {
   CSV_SAMPLE,
   createEmptyPayoutRow,
-  ensureMinimumRows,
   isRowFilled,
   parseCsvRows,
   serializeDraft,
@@ -36,7 +35,7 @@ export function PayoutRunWorkspace({
   const amountId = useId();
   const [runId, setRunId] = useState<string | null>(initialRun?.id ?? null);
   const [mode, setMode] = useState<PayoutRunEntryMode>(initialRun?.entryMode ?? "manual");
-  const [rows, setRows] = useState<PayoutRowDraft[]>(() => ensureMinimumRows(initialRun?.rows ?? []));
+  const [rows, setRows] = useState<PayoutRowDraft[]>(() => initialRun?.rows ?? []);
   const [csvDraft, setCsvDraft] = useState(CSV_SAMPLE);
   const [csvError, setCsvError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -45,12 +44,15 @@ export function PayoutRunWorkspace({
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const initialSerialized = useMemo(
-    () => serializeDraft(initialRun?.entryMode ?? "manual", ensureMinimumRows(initialRun?.rows ?? [])),
+    () => serializeDraft(initialRun?.entryMode ?? "manual", initialRun?.rows ?? []),
     [initialRun],
   );
   const lastSavedRef = useRef(initialSerialized);
 
-  const issues = validateRows(rows);
+  const issues = validateRows(rows, {
+    symbol: publicConfig.phase1TokenSymbol,
+    decimals: publicConfig.phase1TokenDecimals,
+  });
   const validCount = issues.filter((issue) => Object.keys(issue).length === 0).length;
   const invalidCount = issues.length - validCount;
   const filledRows = rows.filter(isRowFilled);
@@ -63,7 +65,7 @@ export function PayoutRunWorkspace({
   const draftFingerprint = useMemo(() => serializeDraft(mode, rows), [mode, rows]);
   const { connection } = useConnection();
   const { publicKey, sendTransaction, connected } = useWallet();
-  const tokenConfigured = Boolean(publicConfig.phase1TokenMint);
+  const payoutConfigured = true;
 
   function updateRow(id: string, field: keyof Omit<PayoutRowDraft, "id">, value: string) {
     setRows((current) =>
@@ -90,7 +92,7 @@ export function PayoutRunWorkspace({
   }
 
   function removeRow(id: string) {
-    setRows((current) => ensureMinimumRows(current.length === 1 ? [createEmptyPayoutRow()] : current.filter((row) => row.id !== id)));
+    setRows((current) => current.filter((row) => row.id !== id));
     setSubmitState("idle");
     setSubmitError(null);
   }
@@ -98,7 +100,7 @@ export function PayoutRunWorkspace({
   function loadCsvIntoTable() {
     try {
       const parsedRows = parseCsvRows(csvDraft);
-      setRows(ensureMinimumRows(parsedRows.length > 0 ? parsedRows : []));
+      setRows(parsedRows);
       setCsvError(null);
       setSubmitState("idle");
       setSubmitError(null);
@@ -108,7 +110,7 @@ export function PayoutRunWorkspace({
   }
 
   function resetRun() {
-    const nextRows = ensureMinimumRows([]);
+    const nextRows: PayoutRowDraft[] = [];
     setRunId(null);
     setMode("manual");
     setRows(nextRows);
@@ -143,8 +145,8 @@ export function PayoutRunWorkspace({
       return;
     }
 
-    if (!tokenConfigured) {
-      setSubmitError("Set NEXT_PUBLIC_PHASE1_TOKEN_MINT before enabling live payouts.");
+    if (!payoutConfigured) {
+      setSubmitError("SOL payouts are not available in this build.");
       return;
     }
 
@@ -152,23 +154,30 @@ export function PayoutRunWorkspace({
       setSubmitError("Connect the funding wallet before sending payouts.");
       return;
     }
+    const fundingWallet = publicKey;
 
     setSubmitState("preparing");
     setSubmitError(null);
 
     try {
-      const contract = await resolvePaymentContract({
-        connection,
-        mintAddress: publicConfig.phase1TokenMint,
-        fallbackDecimals: publicConfig.phase1TokenDecimals,
-        symbol: publicConfig.phase1TokenSymbol,
-      });
+      const contract = await resolvePaymentContract();
 
-      const readyRows = rows.filter((row, index) => isRowFilled(row) && Object.keys(issues[index] ?? {}).length === 0);
-      const { sourceAta } = await assertSourceBalance({
+      const readyRows = rows.filter((row, index) => {
+        if (!isRowFilled(row) || Object.keys(issues[index] ?? {}).length > 0) return false;
+        return row.rowStatus !== "confirmed";
+      });
+      if (readyRows.length === 0) {
+        throw new Error("There are no unpaid valid rows to send. Add a new recipient or edit an existing confirmed row to resend.");
+      }
+      await assertSourceBalance({
         connection,
-        owner: publicKey,
+        owner: fundingWallet,
         contract,
+        rows: readyRows,
+      });
+      const plan = await buildPayoutRunTransactionPlan({
+        connection,
+        payer: fundingWallet,
         rows: readyRows,
       });
 
@@ -181,71 +190,82 @@ export function PayoutRunWorkspace({
       const nextRows = [...rows];
       let anyFailures = false;
 
-      for (const row of readyRows) {
-        const prepared = buildPayoutTransaction({
-          payer: publicKey,
-          sourceAta,
-          contract,
-          row,
+      async function sendPreparedTransaction(transaction: (typeof plan.setupTransactions)[number]) {
+        const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+        transaction.feePayer = fundingWallet;
+        transaction.recentBlockhash = latestBlockhash.blockhash;
+
+        const simulation = await connection.simulateTransaction(transaction);
+        if (simulation.value.err) {
+          const logs = simulation.value.logs?.join("\n") ?? "No program logs returned.";
+          throw new Error(`Transaction simulation failed before wallet signing: ${JSON.stringify(simulation.value.err)}\n${logs}`);
+        }
+
+        const signature = await sendTransaction(transaction, connection, {
+          preflightCommitment: "confirmed",
+          skipPreflight: false,
         });
 
+        const confirmation = await connection.confirmTransaction(
+          {
+            signature,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+          },
+          "confirmed",
+        );
+
+        if (confirmation.value.err) {
+          throw new Error("Transaction confirmed with an on-chain error.");
+        }
+
+        return signature;
+      }
+
+      for (const transaction of plan.setupTransactions) {
+        await sendPreparedTransaction(transaction);
+      }
+      if (plan.fundTransaction) {
+        await sendPreparedTransaction(plan.fundTransaction);
+      }
+
+      for (const chunk of plan.executionChunks) {
         try {
-          const latestBlockhash = await connection.getLatestBlockhash("confirmed");
-          prepared.transaction.feePayer = publicKey;
-          prepared.transaction.recentBlockhash = latestBlockhash.blockhash;
-
-          const signature = await sendTransaction(prepared.transaction, connection, {
-            preflightCommitment: "confirmed",
-            skipPreflight: false,
-          });
+          const signature = await sendPreparedTransaction(chunk.transaction);
 
           await persistRunStatus({
             status: "submitted",
-            rows: [{ id: row.id, rowStatus: "submitted", txSignature: signature }],
+            rows: chunk.rowIds.map((id) => ({ id, rowStatus: "confirmed", txSignature: signature })),
           });
 
-          const confirmation = await connection.confirmTransaction(
-            {
-              signature,
-              blockhash: latestBlockhash.blockhash,
-              lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-            },
-            "confirmed",
-          );
-
-          if (confirmation.value.err) {
-            throw new Error("Transaction confirmed with an on-chain error.");
+          for (const rowId of chunk.rowIds) {
+            const rowIndex = nextRows.findIndex((candidate) => candidate.id === rowId);
+            if (rowIndex >= 0) {
+              nextRows[rowIndex] = {
+                ...nextRows[rowIndex],
+                rowStatus: "confirmed",
+                txSignature: signature,
+                errorMessage: null,
+              };
+            }
           }
-
-          const rowIndex = nextRows.findIndex((candidate) => candidate.id === row.id);
-          if (rowIndex >= 0) {
-            nextRows[rowIndex] = {
-              ...nextRows[rowIndex],
-              rowStatus: "confirmed",
-              txSignature: signature,
-              errorMessage: null,
-            };
-          }
-
-          await persistRunStatus({
-            status: "submitted",
-            rows: [{ id: row.id, rowStatus: "confirmed", txSignature: signature }],
-          });
         } catch (error) {
           anyFailures = true;
           const message = error instanceof Error ? error.message : "Payout failed.";
-          const rowIndex = nextRows.findIndex((candidate) => candidate.id === row.id);
-          if (rowIndex >= 0) {
-            nextRows[rowIndex] = {
-              ...nextRows[rowIndex],
-              rowStatus: "failed",
-              errorMessage: message,
-            };
+          for (const rowId of chunk.rowIds) {
+            const rowIndex = nextRows.findIndex((candidate) => candidate.id === rowId);
+            if (rowIndex >= 0) {
+              nextRows[rowIndex] = {
+                ...nextRows[rowIndex],
+                rowStatus: "failed",
+                errorMessage: message,
+              };
+            }
           }
 
           await persistRunStatus({
             status: "failed",
-            rows: [{ id: row.id, rowStatus: "failed", errorMessage: message }],
+            rows: chunk.rowIds.map((id) => ({ id, rowStatus: "failed", errorMessage: message })),
           });
         }
       }
@@ -276,7 +296,7 @@ export function PayoutRunWorkspace({
     setSaveState("dirty");
     setSaveError(null);
 
-    const hasMeaningfulInput = filledRows.length > 0 || Boolean(runId);
+    const hasMeaningfulInput = rows.length > 0 || Boolean(runId);
     if (!hasMeaningfulInput) return;
 
     const timeoutId = window.setTimeout(async () => {
@@ -299,7 +319,7 @@ export function PayoutRunWorkspace({
         }
 
         setRunId(payload.run.id);
-        const nextRows = ensureMinimumRows(payload.run.rows);
+        const nextRows = payload.run.rows;
         setRows(nextRows);
         setMode(payload.run.entryMode);
         lastSavedRef.current = serializeDraft(payload.run.entryMode, nextRows);
@@ -311,7 +331,7 @@ export function PayoutRunWorkspace({
     }, 700);
 
     return () => window.clearTimeout(timeoutId);
-  }, [draftFingerprint, filledRows.length, mode, rows, runId]);
+  }, [draftFingerprint, mode, rows, runId]);
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
@@ -322,12 +342,10 @@ export function PayoutRunWorkspace({
               <div className="min-w-0">
                 <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Payout run</p>
                 <CardTitle className="mt-2 text-[28px] tracking-[-0.045em] text-[var(--brand-ink-deep)]">Build one clean payout run</CardTitle>
-                <CardDescription className="mt-2 max-w-2xl">
-                  Manual entry and CSV land in the same run. The right rail should answer whether you can send without forcing another screen.
-                </CardDescription>
+                <CardDescription className="mt-2 max-w-2xl">Draft rows, review totals, send.</CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="blue">USDC only</Badge>
+                <Badge tone="blue">{publicConfig.phase1TokenSymbol} only</Badge>
                 <Badge tone="slate">Funding wallet: {walletAddress.slice(0, 4)}…{walletAddress.slice(-4)}</Badge>
                 {runId ? <Badge tone="slate">Draft saved</Badge> : null}
               </div>
@@ -335,13 +353,13 @@ export function PayoutRunWorkspace({
           </CardHeader>
 
           <CardContent className="pt-5">
-            <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-[rgba(148,163,184,0.16)] bg-[var(--brand-surface-muted)] p-1.5">
+            <div className="inline-flex flex-wrap items-center gap-2 rounded-full bg-[var(--brand-surface)] p-1.5 shadow-neoInsetSm">
               <button
                 type="button"
                 className={cn(
                   "rounded-full px-5 py-2 text-sm font-medium transition-all duration-200",
                   mode === "manual"
-                    ? "bg-white text-[var(--brand-primary)] shadow-[0_8px_18px_rgba(15,23,42,0.08)]"
+                    ? "bg-[var(--brand-surface)] text-[var(--brand-primary)] shadow-neoSm"
                     : "text-[var(--brand-muted-ink)] hover:text-[var(--brand-ink-deep)]",
                 )}
                 onClick={() => setMode("manual")}
@@ -353,7 +371,7 @@ export function PayoutRunWorkspace({
                 className={cn(
                   "rounded-full px-5 py-2 text-sm font-medium transition-all duration-200",
                   mode === "csv"
-                    ? "bg-white text-[var(--brand-primary)] shadow-[0_8px_18px_rgba(15,23,42,0.08)]"
+                    ? "bg-[var(--brand-surface)] text-[var(--brand-primary)] shadow-neoSm"
                     : "text-[var(--brand-muted-ink)] hover:text-[var(--brand-ink-deep)]",
                 )}
                 onClick={() => setMode("csv")}
@@ -363,11 +381,11 @@ export function PayoutRunWorkspace({
             </div>
 
             {mode === "csv" ? (
-              <div className="mt-6 grid gap-4 rounded-[28px] border border-[rgba(148,163,184,0.14)] bg-[var(--brand-surface-muted)] p-5">
+              <div className="mt-6 grid gap-4 rounded-[28px] bg-[var(--brand-surface)] p-5 shadow-neoInsetSm">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-medium text-[var(--brand-ink)]">Paste CSV rows</p>
-                    <p className="text-sm text-[var(--brand-muted-ink)]">Use exactly: recipient_name, wallet_address, amount</p>
+                    <p className="text-sm text-[var(--brand-muted-ink)]">Columns: recipient_name, wallet_address, amount</p>
                   </div>
                   <Button variant="secondary" size="sm" onClick={() => setCsvDraft(CSV_SAMPLE)}>
                     Load sample
@@ -379,121 +397,135 @@ export function PayoutRunWorkspace({
                   className="min-h-36 font-mono-ui text-xs leading-6"
                 />
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs text-[var(--brand-muted-ink)]">Imported rows land in the same payout table as manual entry.</p>
+                  <p className="text-xs text-[var(--brand-muted-ink)]">Paste → validate → load.</p>
                   <Button onClick={loadCsvIntoTable}>Use these rows</Button>
                 </div>
                 {csvError ? <p className="text-sm text-red-700">{csvError}</p> : null}
               </div>
             ) : null}
 
-            <div className="mt-6 overflow-hidden rounded-[28px] border border-[rgba(148,163,184,0.14)] bg-white">
-              <div className="hidden grid-cols-[1.1fr_1.4fr_0.7fr_140px] gap-3 border-b border-[rgba(148,163,184,0.12)] bg-[var(--brand-surface-muted)] px-5 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-muted-ink)] md:grid">
-                <span>Recipient</span>
-                <span>Wallet</span>
-                <span id={amountId}>Amount</span>
-                <span>Status</span>
-              </div>
-
-              <div className="grid gap-0 divide-y divide-[rgba(148,163,184,0.12)]">
-                {rows.map((row, index) => {
-                  const rowIssues = issues[index] ?? {};
-                  const rowHasIssues = Object.keys(rowIssues).length > 0;
-                  return (
-                    <div
-                      key={row.id}
-                      className="grid gap-3 bg-white px-5 py-5 md:grid-cols-[1.1fr_1.4fr_0.7fr_140px]"
-                    >
-                      <div className="space-y-2">
-                        <Label htmlFor={`recipient-${row.id}`} className="md:sr-only">
-                          Recipient name
-                        </Label>
-                        <Input
-                          id={`recipient-${row.id}`}
-                          value={row.recipientName}
-                          placeholder="Recipient name"
-                          onChange={(event) => updateRow(row.id, "recipientName", event.target.value)}
-                        />
-                        {rowIssues.recipientName ? <p className="text-xs text-red-700">{rowIssues.recipientName}</p> : null}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor={`wallet-${row.id}`} className="md:sr-only">
-                          Wallet address
-                        </Label>
-                        <Input
-                          id={`wallet-${row.id}`}
-                          value={row.walletAddress}
-                          placeholder="Wallet address"
-                          onChange={(event) => updateRow(row.id, "walletAddress", event.target.value)}
-                        />
-                        {rowIssues.walletAddress ? <p className="text-xs text-red-700">{rowIssues.walletAddress}</p> : null}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor={`amount-${row.id}`} className="md:sr-only">
-                          Amount
-                        </Label>
-                        <Input
-                          id={`amount-${row.id}`}
-                          type="text"
-                          inputMode="decimal"
-                          value={row.amount}
-                          placeholder="0.00"
-                          aria-labelledby={amountId}
-                          onChange={(event) => updateRow(row.id, "amount", event.target.value)}
-                        />
-                        {rowIssues.amount ? <p className="text-xs text-red-700">{rowIssues.amount}</p> : null}
-                      </div>
-
-                      <div className="flex items-start justify-between gap-3 md:flex-col md:justify-center">
-                        <div className="pt-2">
-                          {rowHasIssues ? (
-                            <Badge tone="amber">Needs attention</Badge>
-                          ) : row.rowStatus === "confirmed" ? (
-                            <Badge tone="green">Confirmed</Badge>
-                          ) : row.rowStatus === "submitted" ? (
-                            <Badge tone="blue">Submitted</Badge>
-                          ) : row.rowStatus === "failed" ? (
-                            <Badge tone="amber">Failed</Badge>
-                          ) : row.recipientName || row.walletAddress || row.amount ? (
-                            <Badge tone="green">Ready</Badge>
-                          ) : (
-                            <Badge tone="slate">Empty</Badge>
-                          )}
-                          {row.txSignature ? (
-                            <p className="mt-2 max-w-[170px] truncate text-xs text-[var(--brand-muted-ink)]">
-                              {row.txSignature}
-                            </p>
-                          ) : null}
-                          {row.errorMessage ? <p className="mt-2 max-w-[170px] text-xs text-red-700">{row.errorMessage}</p> : null}
-                          {rowIssues.row ? <p className="mt-2 max-w-[150px] text-xs text-red-700">{rowIssues.row}</p> : null}
-                        </div>
-                        <button
-                          type="button"
-                          className="text-sm font-medium text-[var(--brand-muted-ink)] hover:text-[var(--brand-ink)]"
-                          onClick={() => removeRow(row.id)}
-                        >
-                          Remove
-                        </button>
-                      </div>
+            <div className="mt-6 overflow-hidden rounded-[28px] bg-[var(--brand-surface)] shadow-neoInsetSm">
+              {rows.length === 0 ? (
+                <div className="grid place-items-center px-6 py-14 text-center">
+                  <div className="max-w-sm">
+                    <p className="text-base font-medium text-[var(--brand-ink-deep)]">No recipients added yet</p>
+                    <p className="mt-2 text-sm text-[var(--brand-muted-ink)]">Add the first row here, or load a CSV into the same payout run.</p>
+                    <div className="mt-5 flex justify-center">
+                      <Button variant="secondary" onClick={addRow}>
+                        Add recipient
+                      </Button>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="hidden grid-cols-[1.1fr_1.4fr_0.7fr_140px] gap-3 border-b border-[rgba(148,163,184,0.12)] bg-[var(--brand-surface)] px-5 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-muted-ink)] md:grid">
+                    <span>Recipient</span>
+                    <span>Wallet</span>
+                    <span id={amountId}>Amount</span>
+                    <span>Status</span>
+                  </div>
+
+                  <div className="grid gap-0 divide-y divide-[rgba(148,163,184,0.12)]">
+                    {rows.map((row, index) => {
+                      const rowIssues = issues[index] ?? {};
+                      const rowHasIssues = Object.keys(rowIssues).length > 0;
+                      return (
+                        <div
+                          key={row.id}
+                          className="grid gap-3 bg-[var(--brand-surface)] px-5 py-4 md:grid-cols-[1.1fr_1.4fr_0.7fr_140px]"
+                        >
+                          <div className="space-y-2">
+                            <Label htmlFor={`recipient-${row.id}`} className="md:sr-only">
+                              Recipient name
+                            </Label>
+                            <Input
+                              id={`recipient-${row.id}`}
+                              value={row.recipientName}
+                              placeholder="Recipient name"
+                              onChange={(event) => updateRow(row.id, "recipientName", event.target.value)}
+                            />
+                            {rowIssues.recipientName ? <p className="text-xs text-red-700">{rowIssues.recipientName}</p> : null}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`wallet-${row.id}`} className="md:sr-only">
+                              Wallet address
+                            </Label>
+                            <Input
+                              id={`wallet-${row.id}`}
+                              value={row.walletAddress}
+                              placeholder="Wallet address"
+                              onChange={(event) => updateRow(row.id, "walletAddress", event.target.value)}
+                            />
+                            {rowIssues.walletAddress ? <p className="text-xs text-red-700">{rowIssues.walletAddress}</p> : null}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`amount-${row.id}`} className="md:sr-only">
+                              Amount
+                            </Label>
+                            <Input
+                              id={`amount-${row.id}`}
+                              type="text"
+                              inputMode="decimal"
+                              value={row.amount}
+                              placeholder="0.00"
+                              aria-labelledby={amountId}
+                              onChange={(event) => updateRow(row.id, "amount", event.target.value)}
+                            />
+                            {rowIssues.amount ? <p className="text-xs text-red-700">{rowIssues.amount}</p> : null}
+                          </div>
+
+                          <div className="flex items-start justify-between gap-3 md:flex-col md:justify-center">
+                            <div className="pt-2">
+                              {rowHasIssues ? (
+                                <Badge tone="amber">Needs attention</Badge>
+                              ) : row.rowStatus === "confirmed" ? (
+                                <Badge tone="green">Confirmed</Badge>
+                              ) : row.rowStatus === "submitted" ? (
+                                <Badge tone="blue">Submitted</Badge>
+                              ) : row.rowStatus === "failed" ? (
+                                <Badge tone="amber">Failed</Badge>
+                              ) : row.recipientName || row.walletAddress || row.amount ? (
+                                <Badge tone="green">Ready</Badge>
+                              ) : (
+                                <Badge tone="slate">Empty</Badge>
+                              )}
+                              {row.txSignature ? (
+                                <p className="mt-2 max-w-[170px] truncate text-xs text-[var(--brand-muted-ink)]">
+                                  {row.txSignature}
+                                </p>
+                              ) : null}
+                              {row.errorMessage ? <p className="mt-2 max-w-[170px] text-xs text-red-700">{row.errorMessage}</p> : null}
+                              {rowIssues.row ? <p className="mt-2 max-w-[150px] text-xs text-red-700">{rowIssues.row}</p> : null}
+                            </div>
+                            <button
+                              type="button"
+                              className="text-sm font-medium text-[var(--brand-muted-ink)] hover:text-[var(--brand-ink)]"
+                              onClick={() => removeRow(row.id)}
+                              aria-label="Remove row"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-[var(--brand-muted-ink)]">
-                The workspace is intentionally compact. Three to six payouts should fit cleanly before scrolling becomes necessary.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" onClick={resetRun}>
-                  Start fresh
-                </Button>
+            <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+              <Button variant="secondary" onClick={resetRun}>
+                Start fresh
+              </Button>
+              {rows.length > 0 ? (
                 <Button variant="secondary" onClick={addRow}>
-                  Add row
+                  Add recipient
                 </Button>
-              </div>
+              ) : null}
             </div>
           </CardContent>
         </Card>
@@ -502,33 +534,36 @@ export function PayoutRunWorkspace({
       <div className="xl:sticky xl:top-24">
         <Card>
           <CardHeader>
-            <CardTitle>Review</CardTitle>
-            <CardDescription>This rail should make the send decision obvious in seconds.</CardDescription>
+            <CardTitle>Summary</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 pt-5">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-[24px] border border-[rgba(148,163,184,0.12)] bg-[var(--brand-surface-muted)] px-4 py-3">
+              <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm px-4 py-3">
                 <p className="text-xs text-[var(--brand-muted-ink)]">Valid rows</p>
                 <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--brand-ink-deep)]">{validCount}</p>
               </div>
-              <div className="rounded-[24px] border border-[rgba(148,163,184,0.12)] bg-[var(--brand-surface-muted)] px-4 py-3">
+              <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm px-4 py-3">
                 <p className="text-xs text-[var(--brand-muted-ink)]">Needs attention</p>
                 <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--brand-ink-deep)]">{invalidCount}</p>
               </div>
-              <div className="rounded-[24px] border border-[rgba(148,163,184,0.12)] bg-[var(--brand-surface-muted)] px-4 py-3 sm:col-span-2 xl:col-span-1">
+              <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm px-4 py-3 sm:col-span-2 xl:col-span-1">
                 <p className="text-xs text-[var(--brand-muted-ink)]">Total amount</p>
                 <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--brand-ink-deep)]">
-                  {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {publicConfig.phase1TokenSymbol}
+                  {total.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: publicConfig.phase1TokenDecimals,
+                  })}{" "}
+                  {publicConfig.phase1TokenSymbol}
                 </p>
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-[rgba(148,163,184,0.12)] bg-[var(--brand-surface-muted)] p-4">
+            <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm p-4">
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Funding wallet</p>
               <p className="mt-2 break-all text-sm text-[var(--brand-ink-deep)]">{walletAddress}</p>
             </div>
 
-            <div className="rounded-[24px] border border-[rgba(148,163,184,0.12)] bg-[var(--brand-surface-muted)] p-4">
+            <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm p-4">
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Run state</p>
               <p className="mt-2 text-sm text-[var(--brand-ink-deep)]">
                 {isReady
@@ -539,7 +574,7 @@ export function PayoutRunWorkspace({
               </p>
             </div>
 
-            <div className="rounded-[24px] border border-[rgba(148,163,184,0.12)] bg-[var(--brand-surface-muted)] p-4">
+            <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm p-4">
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Draft status</p>
               <p className="mt-2 text-sm text-[var(--brand-ink-deep)]">
                 {saveState === "saving"
@@ -555,31 +590,31 @@ export function PayoutRunWorkspace({
               {saveError ? <p className="mt-2 text-xs text-red-700">{saveError}</p> : null}
             </div>
 
-            <div className="rounded-[24px] border border-[rgba(148,163,184,0.12)] bg-[var(--brand-surface-muted)] p-4">
+            <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm p-4">
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Execution</p>
               <p className="mt-2 text-sm text-[var(--brand-ink-deep)]">
-                {!tokenConfigured
-                  ? "Live payouts are disabled until a Phase 1 token mint is configured."
+                {!payoutConfigured
+                  ? "Live SOL payouts are disabled in this build."
                   : submitState === "preparing"
-                    ? "Checking token setup and funding balance…"
+                    ? "Preparing escrow and checking funding balance…"
                     : submitState === "submitting"
-                      ? "Sending one transaction per valid row…"
+                      ? "Creating the run, funding escrow, then releasing chunks…"
                       : submitState === "completed"
-                        ? "All ready rows were confirmed."
+                        ? "All ready rows were confirmed with settlement signatures."
                         : submitState === "failed"
                           ? "Some payouts failed. Review row-level status below."
-                          : "Wallet-signed SPL token transfers will run one row at a time."}
+                      : "SOL payouts settle from on-chain escrow in chunks of eight recipients."}
               </p>
               {submitError ? <p className="mt-2 text-xs text-red-700">{submitError}</p> : null}
             </div>
 
             <Button
               size="lg"
-              disabled={!isReady || !tokenConfigured || submitState === "preparing" || submitState === "submitting"}
+              disabled={!isReady || !payoutConfigured || submitState === "preparing" || submitState === "submitting"}
               onClick={handleSubmitRun}
             >
-              {!tokenConfigured
-                ? "Configure payout mint to send"
+              {!payoutConfigured
+                ? "SOL payouts unavailable"
                 : submitState === "preparing"
                   ? "Preparing payout run…"
                   : submitState === "submitting"
@@ -588,7 +623,7 @@ export function PayoutRunWorkspace({
             </Button>
 
             <p className="text-xs leading-6 text-[var(--brand-muted-ink)]">
-              Draft persistence is already live. Sending uses the connected funding wallet and one configured SPL mint.
+              Sending creates an on-chain SOL escrow, funds it once, then releases recipients in safe chunks.
             </p>
           </CardContent>
         </Card>

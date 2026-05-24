@@ -1,5 +1,5 @@
 {
-  "address": "C3qyHGtVXDTDqKR7ng1Q4ikYK2mKxyqtZLcWpgA1fKZV",
+  "address": "HWU77LBoeg7XFpADmc4poPzY1cyVKdVdCygef7xsUMgj",
   "metadata": {
     "name": "cipherpay",
     "version": "0.1.0",
@@ -8,68 +8,160 @@
   },
   "instructions": [
     {
-      "name": "create_invoice",
+      "name": "cancel_payout_run",
       "discriminator": [
-        154,
-        170,
-        31,
+        4,
+        77,
+        130,
         135,
-        134,
-        100,
-        156,
-        146
+        103,
+        252,
+        194,
+        212
       ],
       "accounts": [
         {
-          "name": "creator",
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "treasury",
+            "payout_run"
+          ]
+        },
+        {
+          "name": "treasury",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury.authority",
+                "account": "Treasury"
+              }
+            ]
+          },
+          "relations": [
+            "payout_run"
+          ]
+        },
+        {
+          "name": "payout_run",
           "writable": true,
-          "signer": true
-        },
-        {
-          "name": "client"
-        },
-        {
-          "name": "creator_account",
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
+                  114,
                   117,
-                  115,
-                  101,
-                  114
+                  110
                 ]
               },
               {
                 "kind": "account",
-                "path": "creator"
+                "path": "treasury"
+              },
+              {
+                "kind": "account",
+                "path": "payout_run.run_number",
+                "account": "PayoutRun"
               }
             ]
           }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_payout_item",
+      "discriminator": [
+        21,
+        205,
+        161,
+        219,
+        94,
+        29,
+        5,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "treasury",
+            "payout_run"
+          ]
         },
         {
-          "name": "client_account",
+          "name": "treasury",
+          "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  117,
-                  115,
+                  116,
+                  114,
                   101,
-                  114
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
                 ]
               },
               {
                 "kind": "account",
-                "path": "client"
+                "path": "treasury.authority",
+                "account": "Treasury"
+              }
+            ]
+          },
+          "relations": [
+            "payout_run"
+          ]
+        },
+        {
+          "name": "payout_run",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "account",
+                "path": "payout_run.run_number",
+                "account": "PayoutRun"
               }
             ]
           }
         },
         {
-          "name": "invoice",
+          "name": "payout_item",
           "writable": true,
           "pda": {
             "seeds": [
@@ -77,17 +169,18 @@
                 "kind": "const",
                 "value": [
                   105,
-                  110,
-                  118,
-                  111,
-                  105,
-                  99,
-                  101
+                  116,
+                  101,
+                  109
                 ]
               },
               {
                 "kind": "account",
-                "path": "creator"
+                "path": "payout_run"
+              },
+              {
+                "kind": "arg",
+                "path": "item_index"
               }
             ]
           }
@@ -99,220 +192,221 @@
       ],
       "args": [
         {
-          "name": "amount",
+          "name": "item_index",
+          "type": "u32"
+        },
+        {
+          "name": "recipient",
+          "type": "pubkey"
+        },
+        {
+          "name": "lamports",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "pay_invoice",
+      "name": "create_payout_run",
       "discriminator": [
-        104,
-        6,
-        62,
-        239,
-        197,
-        206,
-        208,
-        220
+        245,
+        20,
+        181,
+        21,
+        252,
+        77,
+        111,
+        138
       ],
       "accounts": [
         {
-          "name": "creator",
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "treasury"
+          ]
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury.authority",
+                "account": "Treasury"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payout_run",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "arg",
+                "path": "run_number"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "run_number",
+          "type": "u64"
+        },
+        {
+          "name": "expected_item_count",
+          "type": "u32"
+        },
+        {
+          "name": "total_lamports",
+          "type": "u64"
+        },
+        {
+          "name": "manifest_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_payout_item",
+      "discriminator": [
+        182,
+        248,
+        96,
+        179,
+        150,
+        99,
+        41,
+        149
+      ],
+      "accounts": [
+        {
+          "name": "executor",
           "writable": true,
           "signer": true
         },
         {
-          "name": "client",
-          "writable": true,
-          "signer": true
+          "name": "treasury",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury.authority",
+                "account": "Treasury"
+              }
+            ]
+          },
+          "relations": [
+            "payout_run"
+          ]
         },
         {
-          "name": "mint_a",
+          "name": "payout_run",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "account",
+                "path": "payout_run.run_number",
+                "account": "PayoutRun"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payout_item",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payout_run"
+              },
+              {
+                "kind": "arg",
+                "path": "item_index"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient",
           "writable": true
         },
         {
-          "name": "client_ata_a",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "client"
-              },
-              {
-                "kind": "account",
-                "path": "token_program"
-              },
-              {
-                "kind": "account",
-                "path": "mint_a"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
-          "name": "creator_ata_a",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "creator"
-              },
-              {
-                "kind": "account",
-                "path": "token_program"
-              },
-              {
-                "kind": "account",
-                "path": "mint_a"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
-          "name": "creator_account",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  117,
-                  115,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "creator"
-              }
-            ]
-          }
-        },
-        {
-          "name": "client_account",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  117,
-                  115,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "client"
-              }
-            ]
-          }
-        },
-        {
-          "name": "invoice",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  105,
-                  110,
-                  118,
-                  111,
-                  105,
-                  99,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "creator"
-              }
-            ]
-          }
-        },
-        {
-          "name": "receipt",
+          "name": "payout_receipt",
           "writable": true,
           "pda": {
             "seeds": [
@@ -330,11 +424,11 @@
               },
               {
                 "kind": "account",
-                "path": "invoice"
+                "path": "payout_run"
               },
               {
-                "kind": "account",
-                "path": "client"
+                "kind": "arg",
+                "path": "item_index"
               }
             ]
           }
@@ -342,58 +436,82 @@
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
-          "name": "token_program",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         }
       ],
       "args": [
         {
-          "name": "mint_amount",
-          "type": "u64"
+          "name": "item_index",
+          "type": "u32"
         }
       ]
     },
     {
-      "name": "register",
+      "name": "execute_payout_items",
       "discriminator": [
-        211,
-        124,
-        67,
-        15,
-        211,
-        194,
-        178,
-        240
+        27,
+        80,
+        116,
+        229,
+        146,
+        176,
+        82,
+        194
       ],
       "accounts": [
         {
-          "name": "user",
+          "name": "executor",
           "writable": true,
           "signer": true
         },
         {
-          "name": "user_account",
+          "name": "treasury",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury.authority",
+                "account": "Treasury"
+              }
+            ]
+          },
+          "relations": [
+            "payout_run"
+          ]
+        },
+        {
+          "name": "payout_run",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
+                  114,
                   117,
-                  115,
-                  101,
-                  114
+                  110
                 ]
               },
               {
                 "kind": "account",
-                "path": "user"
+                "path": "treasury"
+              },
+              {
+                "kind": "account",
+                "path": "payout_run.run_number",
+                "account": "PayoutRun"
               }
             ]
           }
@@ -405,81 +523,631 @@
       ],
       "args": [
         {
-          "name": "name",
-          "type": "string"
+          "name": "item_indexes",
+          "type": {
+            "vec": "u32"
+          }
+        }
+      ]
+    },
+    {
+      "name": "fund_payout_run",
+      "discriminator": [
+        151,
+        193,
+        89,
+        67,
+        128,
+        238,
+        129,
+        140
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "treasury",
+            "payout_run"
+          ]
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury.authority",
+                "account": "Treasury"
+              }
+            ]
+          },
+          "relations": [
+            "payout_run"
+          ]
+        },
+        {
+          "name": "payout_run",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "account",
+                "path": "payout_run.run_number",
+                "account": "PayoutRun"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_treasury",
+      "discriminator": [
+        124,
+        186,
+        211,
+        195,
+        85,
+        165,
+        129,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "refund_payout_run",
+      "discriminator": [
+        161,
+        233,
+        219,
+        240,
+        217,
+        207,
+        131,
+        178
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "treasury",
+            "payout_run"
+          ]
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury.authority",
+                "account": "Treasury"
+              }
+            ]
+          },
+          "relations": [
+            "payout_run"
+          ]
+        },
+        {
+          "name": "payout_run",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  117,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury"
+              },
+              {
+                "kind": "account",
+                "path": "payout_run.run_number",
+                "account": "PayoutRun"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_treasury_pause",
+      "discriminator": [
+        80,
+        10,
+        224,
+        144,
+        253,
+        146,
+        210,
+        103
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "treasury"
+          ]
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "treasury.authority",
+                "account": "Treasury"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "paused",
+          "type": "bool"
         }
       ]
     }
   ],
   "accounts": [
     {
-      "name": "Invoice",
+      "name": "PayoutItem",
       "discriminator": [
-        51,
-        194,
-        250,
-        114,
-        6,
-        104,
-        18,
-        164
-      ]
-    },
-    {
-      "name": "Receipt",
-      "discriminator": [
-        39,
-        154,
-        73,
-        106,
-        80,
-        102,
-        145,
-        153
-      ]
-    },
-    {
-      "name": "UserAccount",
-      "discriminator": [
-        211,
-        33,
-        136,
-        16,
-        186,
+        42,
+        244,
+        162,
+        58,
         110,
-        242,
-        127
+        60,
+        131,
+        107
       ]
+    },
+    {
+      "name": "PayoutReceipt",
+      "discriminator": [
+        18,
+        170,
+        203,
+        23,
+        19,
+        67,
+        154,
+        216
+      ]
+    },
+    {
+      "name": "PayoutRun",
+      "discriminator": [
+        204,
+        156,
+        231,
+        203,
+        121,
+        11,
+        246,
+        69
+      ]
+    },
+    {
+      "name": "Treasury",
+      "discriminator": [
+        238,
+        239,
+        123,
+        238,
+        89,
+        1,
+        168,
+        253
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "PayoutItemCreated",
+      "discriminator": [
+        242,
+        131,
+        49,
+        72,
+        206,
+        8,
+        19,
+        210
+      ]
+    },
+    {
+      "name": "PayoutItemExecuted",
+      "discriminator": [
+        38,
+        77,
+        184,
+        199,
+        187,
+        138,
+        153,
+        233
+      ]
+    },
+    {
+      "name": "PayoutRunCancelled",
+      "discriminator": [
+        166,
+        208,
+        168,
+        10,
+        180,
+        250,
+        174,
+        94
+      ]
+    },
+    {
+      "name": "PayoutRunCreated",
+      "discriminator": [
+        118,
+        109,
+        84,
+        141,
+        70,
+        9,
+        109,
+        157
+      ]
+    },
+    {
+      "name": "PayoutRunFunded",
+      "discriminator": [
+        114,
+        252,
+        92,
+        173,
+        73,
+        250,
+        188,
+        232
+      ]
+    },
+    {
+      "name": "PayoutRunRefunded",
+      "discriminator": [
+        102,
+        191,
+        228,
+        54,
+        225,
+        2,
+        227,
+        161
+      ]
+    },
+    {
+      "name": "TreasuryInitialized",
+      "discriminator": [
+        199,
+        73,
+        174,
+        205,
+        59,
+        145,
+        55,
+        179
+      ]
+    },
+    {
+      "name": "TreasuryPauseUpdated",
+      "discriminator": [
+        170,
+        49,
+        114,
+        12,
+        124,
+        37,
+        176,
+        194
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "UnauthorizedAuthority",
+      "msg": "Only the configured treasury authority can perform this action."
+    },
+    {
+      "code": 6001,
+      "name": "TreasuryPaused",
+      "msg": "The treasury is paused."
+    },
+    {
+      "code": 6002,
+      "name": "InvalidRunNumber",
+      "msg": "Run number does not match the treasury sequence."
+    },
+    {
+      "code": 6003,
+      "name": "InvalidExpectedItemCount",
+      "msg": "Expected item count must be greater than zero."
+    },
+    {
+      "code": 6004,
+      "name": "InvalidTotalAmount",
+      "msg": "Total amount must be greater than zero."
+    },
+    {
+      "code": 6005,
+      "name": "InvalidPayoutAmount",
+      "msg": "Payout amount must be greater than zero."
+    },
+    {
+      "code": 6006,
+      "name": "ManifestHashRequired",
+      "msg": "Manifest hash must not be all zeroes."
+    },
+    {
+      "code": 6007,
+      "name": "ItemIndexOutOfRange",
+      "msg": "The payout item index is out of range for this run."
+    },
+    {
+      "code": 6008,
+      "name": "RunNotDraft",
+      "msg": "The payout run must be in Draft status."
+    },
+    {
+      "code": 6009,
+      "name": "RunNotFunded",
+      "msg": "The payout run must be funded before execution."
+    },
+    {
+      "code": 6010,
+      "name": "RunNotExecutable",
+      "msg": "This payout run can no longer accept executions."
+    },
+    {
+      "code": 6011,
+      "name": "RunAlreadyCancelled",
+      "msg": "This payout run has already been cancelled."
+    },
+    {
+      "code": 6012,
+      "name": "RunAlreadyCompleted",
+      "msg": "This payout run has already been completed."
+    },
+    {
+      "code": 6013,
+      "name": "RunNotCancellable",
+      "msg": "This payout run cannot be cancelled in its current state."
+    },
+    {
+      "code": 6014,
+      "name": "RunNotCancelled",
+      "msg": "This payout run must be cancelled first."
+    },
+    {
+      "code": 6015,
+      "name": "InvalidRecipient",
+      "msg": "Recipient cannot be the default public key."
+    },
+    {
+      "code": 6016,
+      "name": "RunItemSumExceeded",
+      "msg": "Creating this payout item would exceed the run total."
+    },
+    {
+      "code": 6017,
+      "name": "RunItemsIncomplete",
+      "msg": "All payout items must be created before funding."
+    },
+    {
+      "code": 6018,
+      "name": "RunItemSumMismatch",
+      "msg": "Created payout item lamports must equal the run total before funding."
+    },
+    {
+      "code": 6019,
+      "name": "RunAlreadyFunded",
+      "msg": "This payout run has already been funded."
+    },
+    {
+      "code": 6020,
+      "name": "RunItemCountExceeded",
+      "msg": "Executing this item would exceed the run item count."
+    },
+    {
+      "code": 6021,
+      "name": "InvalidPayoutItem",
+      "msg": "The payout item account does not match this run and index."
+    },
+    {
+      "code": 6022,
+      "name": "RecipientMismatch",
+      "msg": "Recipient account does not match the payout item recipient."
+    },
+    {
+      "code": 6023,
+      "name": "PayoutItemAlreadyExecuted",
+      "msg": "Payout item has already been executed."
+    },
+    {
+      "code": 6024,
+      "name": "ReceiptPdaMismatch",
+      "msg": "Receipt account PDA does not match this run and item index."
+    },
+    {
+      "code": 6025,
+      "name": "EscrowInsufficient",
+      "msg": "The payout run escrow does not have enough spendable lamports."
+    },
+    {
+      "code": 6026,
+      "name": "NoRefundAvailable",
+      "msg": "No refundable escrow lamports are available."
+    },
+    {
+      "code": 6027,
+      "name": "InvalidBatchSize",
+      "msg": "Batch must contain at least one payout item."
+    },
+    {
+      "code": 6028,
+      "name": "BatchTooLarge",
+      "msg": "Batch exceeds the maximum safe payout item count."
+    },
+    {
+      "code": 6029,
+      "name": "InvalidRemainingAccounts",
+      "msg": "Batch remaining accounts must be exactly item, recipient, receipt for each index."
+    },
+    {
+      "code": 6030,
+      "name": "DuplicateBatchItem",
+      "msg": "Batch contains a duplicate payout item index."
+    },
+    {
+      "code": 6031,
+      "name": "RentExemptionCalculationFailed",
+      "msg": "Rent-exempt reserve calculation failed."
+    },
+    {
+      "code": 6032,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow."
     }
   ],
   "types": [
     {
-      "name": "Invoice",
+      "name": "PayoutItem",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "creator",
+            "name": "run",
             "type": "pubkey"
           },
           {
-            "name": "creator_account_bump",
-            "type": "u8"
+            "name": "item_index",
+            "type": "u32"
           },
           {
-            "name": "client",
+            "name": "recipient",
             "type": "pubkey"
           },
           {
-            "name": "client_account_bump",
-            "type": "u8"
-          },
-          {
-            "name": "amount",
+            "name": "lamports",
             "type": "u64"
           },
           {
-            "name": "paid",
+            "name": "executed",
             "type": "bool"
           },
           {
@@ -487,34 +1155,14 @@
             "type": "i64"
           },
           {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Receipt",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "from",
-            "type": "pubkey"
-          },
-          {
-            "name": "to",
-            "type": "pubkey"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "paid_at",
+            "name": "executed_at",
             "type": "i64"
           },
           {
+            "name": "executed_slot",
+            "type": "u64"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -522,25 +1170,406 @@
       }
     },
     {
-      "name": "UserAccount",
+      "name": "PayoutItemCreated",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "name",
-            "type": "string"
+            "name": "treasury",
+            "type": "pubkey"
           },
           {
-            "name": "total_received",
+            "name": "run",
+            "type": "pubkey"
+          },
+          {
+            "name": "item",
+            "type": "pubkey"
+          },
+          {
+            "name": "item_index",
+            "type": "u32"
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PayoutItemExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "run",
+            "type": "pubkey"
+          },
+          {
+            "name": "item",
+            "type": "pubkey"
+          },
+          {
+            "name": "receipt",
+            "type": "pubkey"
+          },
+          {
+            "name": "item_index",
+            "type": "u32"
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PayoutReceipt",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "run",
+            "type": "pubkey"
+          },
+          {
+            "name": "item",
+            "type": "pubkey"
+          },
+          {
+            "name": "run_number",
             "type": "u64"
           },
           {
-            "name": "total_payed",
+            "name": "item_index",
+            "type": "u32"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "lamports",
+            "type": "u64"
+          },
+          {
+            "name": "executed_at",
+            "type": "i64"
+          },
+          {
+            "name": "executed_slot",
             "type": "u64"
           },
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PayoutRun",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "run_number",
+            "type": "u64"
+          },
+          {
+            "name": "manifest_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "PayoutRunStatus"
+              }
+            }
+          },
+          {
+            "name": "expected_item_count",
+            "type": "u32"
+          },
+          {
+            "name": "created_item_count",
+            "type": "u32"
+          },
+          {
+            "name": "executed_item_count",
+            "type": "u32"
+          },
+          {
+            "name": "total_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "created_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "deposited_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "executed_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "refunded_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          },
+          {
+            "name": "funded_at",
+            "type": "i64"
+          },
+          {
+            "name": "completed_at",
+            "type": "i64"
+          },
+          {
+            "name": "cancelled_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PayoutRunCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "run",
+            "type": "pubkey"
+          },
+          {
+            "name": "run_number",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PayoutRunCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "run",
+            "type": "pubkey"
+          },
+          {
+            "name": "run_number",
+            "type": "u64"
+          },
+          {
+            "name": "expected_item_count",
+            "type": "u32"
+          },
+          {
+            "name": "total_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "manifest_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "PayoutRunFunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "run",
+            "type": "pubkey"
+          },
+          {
+            "name": "run_number",
+            "type": "u64"
+          },
+          {
+            "name": "lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PayoutRunRefunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "run",
+            "type": "pubkey"
+          },
+          {
+            "name": "run_number",
+            "type": "u64"
+          },
+          {
+            "name": "lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PayoutRunStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Draft"
+          },
+          {
+            "name": "Funded"
+          },
+          {
+            "name": "InProgress"
+          },
+          {
+            "name": "Completed"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Treasury",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          },
+          {
+            "name": "next_run_number",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "updated_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TreasuryInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TreasuryPauseUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
           }
         ]
       }

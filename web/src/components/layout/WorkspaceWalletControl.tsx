@@ -1,19 +1,17 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 import { WalletDialog } from "@/components/layout/WalletDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { createWalletSession } from "@/lib/auth/client";
 import { publicConfig } from "@/lib/public-config";
 import { cn } from "@/lib/utils";
-
-type Panel = "overview" | "receive" | "send";
 
 function WalletIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -39,15 +37,6 @@ function ArrowUpRightIcon(props: React.SVGProps<SVGSVGElement>) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M7 17 17 7" />
       <path d="M8 7h9v9" />
-    </svg>
-  );
-}
-
-function ArrowDownLeftIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M17 7 7 17" />
-      <path d="M16 17H7V8" />
     </svg>
   );
 }
@@ -87,24 +76,67 @@ function explorerAccountUrl(address: string) {
   return `https://solscan.io/account/${address}${cluster}`;
 }
 
+function ActionTile({
+  title,
+  icon,
+  onClick,
+  href,
+  tone = "primary",
+}: {
+  title: string;
+  icon: React.ReactNode;
+  onClick?: () => void;
+  href?: string;
+  tone?: "primary" | "danger";
+}) {
+  const inner = (
+    <div className="flex items-center gap-3">
+      <span
+        className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-surface)] shadow-neoInsetSm",
+          tone === "danger" ? "text-[var(--brand-danger)]" : "text-[var(--brand-primary)]",
+        )}
+      >
+        {icon}
+      </span>
+      <p className="text-sm font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">{title}</p>
+    </div>
+  );
+
+  const className = "rounded-[24px] bg-[var(--brand-surface)] p-4 text-left shadow-neoSm transition-all duration-200 hover:-translate-y-px hover:shadow-neo";
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className={className}>
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={className}>
+      {inner}
+    </button>
+  );
+}
+
 export function WorkspaceWalletControl() {
+  const router = useRouter();
   const { connection } = useConnection();
   const { setVisible } = useWalletModal();
-  const { connected, disconnect, publicKey, sendTransaction, wallet } = useWallet();
+  const { connected, disconnect, publicKey, signMessage, wallet } = useWallet();
 
   const [open, setOpen] = React.useState(false);
-  const [panel, setPanel] = React.useState<Panel>("overview");
   const [balanceLamports, setBalanceLamports] = React.useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [sendTo, setSendTo] = React.useState("");
-  const [sendAmount, setSendAmount] = React.useState("");
   const [copied, setCopied] = React.useState(false);
-  const [sendError, setSendError] = React.useState<string | null>(null);
-  const [sendSuccess, setSendSuccess] = React.useState<string | null>(null);
-  const [isSending, setIsSending] = React.useState(false);
+  const [sessionWalletAddress, setSessionWalletAddress] = React.useState<string | null>(null);
+  const [isSyncingSession, setIsSyncingSession] = React.useState(false);
+  const [sessionError, setSessionError] = React.useState<string | null>(null);
   const copyTimeoutRef = React.useRef<number | null>(null);
 
   const walletAddress = publicKey?.toBase58() ?? null;
+  const fundingWalletMatches = Boolean(walletAddress && sessionWalletAddress && walletAddress === sessionWalletAddress);
   const walletLabel = wallet?.adapter?.name ?? "Wallet";
   const balanceLabel = balanceLamports == null ? "—" : `${formatSol(balanceLamports)} SOL`;
 
@@ -131,19 +163,38 @@ export function WorkspaceWalletControl() {
   }, [open, refreshBalance]);
 
   React.useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+
+    async function loadSessionWallet() {
+      try {
+        const response = await fetch("/api/auth/session", { cache: "no-store" });
+        const payload = (await response.json()) as { session?: { walletAddress?: string } | null };
+        if (!cancelled) {
+          setSessionWalletAddress(payload.session?.walletAddress ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setSessionWalletAddress(null);
+        }
+      }
+    }
+
+    void loadSessionWallet();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  React.useEffect(() => {
     return () => {
       if (copyTimeoutRef.current) {
         window.clearTimeout(copyTimeoutRef.current);
       }
     };
   }, []);
-
-  const handleOpen = () => {
-    setOpen(true);
-    setPanel("overview");
-    setSendError(null);
-    setSendSuccess(null);
-  };
 
   const handleCopy = async () => {
     if (!walletAddress) return;
@@ -157,60 +208,32 @@ export function WorkspaceWalletControl() {
     }
   };
 
-  const handleDisconnect = async () => {
+  const handleSignOut = async () => {
     try {
+      await fetch("/api/auth/logout", { method: "POST" });
       await disconnect();
-      setOpen(false);
-    } catch {
-      // ignore disconnect failures
+    } finally {
+      window.location.href = "/";
     }
   };
 
-  const handleSend = async () => {
-    setSendError(null);
-    setSendSuccess(null);
+  const handleUseConnectedWallet = async () => {
+    setSessionError(null);
 
-    if (!connected || !publicKey || !sendTransaction) {
-      setSendError("Connect a wallet with transaction signing enabled.");
+    if (!walletAddress || !signMessage) {
+      setSessionError("Connect a wallet with message signing enabled.");
       return;
     }
 
-    let destination: PublicKey;
+    setIsSyncingSession(true);
     try {
-      destination = new PublicKey(sendTo.trim());
-    } catch {
-      setSendError("Recipient address is not valid.");
-      return;
-    }
-
-    const amount = Number(sendAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setSendError("Enter a valid SOL amount.");
-      return;
-    }
-
-    const lamports = Math.round(amount * LAMPORTS_PER_SOL);
-    if (lamports <= 0) {
-      setSendError("Amount is too small.");
-      return;
-    }
-
-    setIsSending(true);
-    try {
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized");
-      const transaction = new Transaction({ feePayer: publicKey, recentBlockhash: blockhash }).add(
-        SystemProgram.transfer({ fromPubkey: publicKey, toPubkey: destination, lamports }),
-      );
-      const signature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
-      setSendSuccess(`Sent ${amount} SOL`);
-      setSendTo("");
-      setSendAmount("");
-      void refreshBalance();
+      await createWalletSession({ walletAddress, signMessage });
+      setSessionWalletAddress(walletAddress);
+      router.refresh();
     } catch (error) {
-      setSendError(error instanceof Error ? error.message : "Send failed.");
+      setSessionError(error instanceof Error ? error.message : "Could not update the funding wallet.");
     } finally {
-      setIsSending(false);
+      setIsSyncingSession(false);
     }
   };
 
@@ -218,37 +241,33 @@ export function WorkspaceWalletControl() {
     <>
       <button
         type="button"
-        onClick={handleOpen}
-        className="group inline-flex h-12 items-center gap-3 rounded-full bg-[var(--brand-surface)] px-3 py-2 shadow-neoSm transition-all duration-200 hover:-translate-y-px hover:shadow-neo"
+        onClick={() => setOpen(true)}
+        className="group inline-flex h-11 items-center gap-2.5 rounded-full bg-[var(--brand-surface)] px-3 shadow-neoSm transition-all duration-200 hover:-translate-y-px hover:shadow-neo"
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-primary-gradient-start),var(--brand-primary-gradient-end))] text-white shadow-neoSm">
-          <WalletIcon className="h-4.5 w-4.5" />
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-primary-gradient-start),var(--brand-primary-gradient-end))] text-white shadow-neoSm">
+          <WalletIcon className="h-4 w-4" />
         </span>
         <span className="hidden text-left sm:block">
           <span className="block text-sm font-semibold tracking-[-0.03em] text-[var(--brand-ink)]">
             {walletAddress ? truncateAddress(walletAddress) : "Wallet"}
           </span>
-          <span className="block text-xs text-[var(--brand-muted-ink)]">{walletAddress ? balanceLabel : "Open controls"}</span>
+          <span className="block text-xs text-[var(--brand-muted-ink)]">{walletAddress ? balanceLabel : "Connect"}</span>
         </span>
       </button>
 
       {open ? (
         <WalletDialog
-          title={connected && walletAddress ? "Wallet control center" : "Connect your funding wallet"}
-          description={
-            connected && walletAddress
-              ? "Manage the wallet that signs payout runs. Everything important should be reachable from one calm surface."
-              : "Choose a supported wallet, then sign in and fund payout runs without leaving the workspace."
-          }
+          title={connected && walletAddress ? "Wallet" : "Connect wallet"}
+          description={connected && walletAddress ? "Balance and quick actions." : "Choose a wallet to continue."}
           onClose={() => setOpen(false)}
         >
-          <div className="grid gap-5">
+          <div className="grid gap-4">
             <div className="grid gap-3 rounded-[28px] bg-[var(--brand-surface)] p-4 shadow-neoInsetSm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand-primary)]">Active wallet</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand-primary)]">Active</p>
                   <p className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--brand-ink)]">
-                    {walletAddress ? truncateAddress(walletAddress) : "No wallet connected"}
+                    {walletAddress ? truncateAddress(walletAddress) : "No wallet"}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -258,7 +277,7 @@ export function WorkspaceWalletControl() {
               </div>
 
               {walletAddress ? (
-                <>
+                <div className="grid gap-3">
                   <div className="rounded-[22px] bg-[var(--brand-surface)] px-4 py-3 shadow-neoInsetSm">
                     <p className="text-xs text-[var(--brand-muted-ink)]">Balance</p>
                     <div className="mt-1 flex items-center justify-between gap-3">
@@ -270,179 +289,48 @@ export function WorkspaceWalletControl() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant={panel === "overview" ? "primary" : "secondary"} className="rounded-full" onClick={() => setPanel("overview")}>
-                      Overview
-                    </Button>
-                    <Button variant={panel === "receive" ? "primary" : "secondary"} className="rounded-full" onClick={() => setPanel("receive")}>
-                      Receive
-                    </Button>
-                    <Button variant={panel === "send" ? "primary" : "secondary"} className="rounded-full" onClick={() => setPanel("send")}>
-                      Send SOL
-                    </Button>
+                  <div className="rounded-[22px] bg-[var(--brand-surface)] px-4 py-3 shadow-neoInsetSm">
+                    <p className="text-xs text-[var(--brand-muted-ink)]">Funding wallet</p>
+                    <p className="mt-1 text-sm font-medium text-[var(--brand-ink)]">
+                      {fundingWalletMatches ? "This connected wallet" : "Sign this wallet to use it for payouts"}
+                    </p>
+                    {!fundingWalletMatches ? (
+                      <div className="mt-3">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="rounded-full"
+                          onClick={() => void handleUseConnectedWallet()}
+                          disabled={isSyncingSession}
+                        >
+                          {isSyncingSession ? "Signing..." : "Use for payouts"}
+                        </Button>
+                      </div>
+                    ) : null}
+                    {sessionError ? <p className="mt-2 text-xs text-red-700">{sessionError}</p> : null}
                   </div>
-                </>
+                </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => setVisible(true)}>
+                  <Button onClick={() => setVisible(true)} className="rounded-full">
                     Choose wallet
                   </Button>
                 </div>
               )}
             </div>
 
-            {walletAddress && panel === "overview" ? (
+            {walletAddress ? (
               <div className="grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="rounded-[24px] bg-[var(--brand-surface)] p-4 text-left shadow-neoSm transition-all duration-200 hover:-translate-y-px hover:shadow-neo"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-surface)] text-[var(--brand-primary)] shadow-neoInsetSm">
-                      <CopyIcon className="h-4.5 w-4.5" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">{copied ? "Address copied" : "Copy address"}</p>
-                    </div>
-                  </div>
-                </button>
-
-                <a
-                  href={explorerAccountUrl(walletAddress)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-[24px] bg-[var(--brand-surface)] p-4 text-left shadow-neoSm transition-all duration-200 hover:-translate-y-px hover:shadow-neo"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-surface)] text-[var(--brand-primary)] shadow-neoInsetSm">
-                      <ArrowUpRightIcon className="h-4.5 w-4.5" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">Open explorer</p>
-                    </div>
-                  </div>
-                </a>
-
-                <button
-                  type="button"
-                  onClick={() => setVisible(true)}
-                  className="rounded-[24px] bg-[var(--brand-surface)] p-4 text-left shadow-neoSm transition-all duration-200 hover:-translate-y-px hover:shadow-neo"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-surface)] text-[var(--brand-primary)] shadow-neoInsetSm">
-                      <RefreshIcon className="h-4.5 w-4.5" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">Change wallet</p>
-                    </div>
-                  </div>
-                </button>
-
-                <form action="/api/auth/logout" method="post" className="contents">
-                  <button
-                    type="submit"
-                    className="rounded-[24px] bg-[var(--brand-surface)] p-4 text-left shadow-neoSm transition-all duration-200 hover:-translate-y-px hover:shadow-neo"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-surface)] text-[var(--brand-danger)] shadow-neoInsetSm">
-                        <ExitIcon className="h-4.5 w-4.5" />
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">Sign out</p>
-                      </div>
-                    </div>
-                  </button>
-                </form>
+                <ActionTile title={copied ? "Copied" : "Copy address"} icon={<CopyIcon className="h-4 w-4" />} onClick={handleCopy} />
+                <ActionTile title="Open explorer" icon={<ArrowUpRightIcon className="h-4 w-4" />} href={explorerAccountUrl(walletAddress)} />
+                <ActionTile title="Change wallet" icon={<RefreshIcon className="h-4 w-4" />} onClick={() => setVisible(true)} />
+                <ActionTile title="Sign out" icon={<ExitIcon className="h-4 w-4" />} tone="danger" onClick={() => void handleSignOut()} />
               </div>
-            ) : null}
-
-            {walletAddress && panel === "receive" ? (
-              <div className="grid gap-3 rounded-[28px] bg-[var(--brand-surface)] p-5 shadow-neoInsetSm">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-surface)] text-[var(--brand-primary)] shadow-neoInsetSm">
-                    <ArrowDownLeftIcon className="h-4.5 w-4.5" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">Receive funds</p>
-                  </div>
-                </div>
-                <div className="rounded-[22px] bg-[var(--brand-surface)] px-4 py-4 text-sm leading-7 text-[var(--brand-ink)] shadow-neoInsetSm">
-                  {walletAddress}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" className="rounded-full" onClick={handleCopy}>
-                    {copied ? "Copied" : "Copy address"}
-                  </Button>
-                  <a href={explorerAccountUrl(walletAddress)} target="_blank" rel="noreferrer">
-                    <Button variant="ghost" className="rounded-full">
-                      Open explorer
-                    </Button>
-                  </a>
-                </div>
-              </div>
-            ) : null}
-
-            {walletAddress && panel === "send" ? (
-              <div className="grid gap-4 rounded-[28px] bg-[var(--brand-surface)] p-5 shadow-neoInsetSm">
-                <div>
-                  <p className="text-sm font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">Send native SOL</p>
-                  <p className="mt-1 text-xs leading-5 text-[var(--brand-muted-ink)]">
-                    Separate from payout runs.
-                  </p>
-                </div>
-                <div className="grid gap-3">
-                  <div className="grid gap-2">
-                    <Label htmlFor="wallet-send-to">Recipient address</Label>
-                    <Input id="wallet-send-to" value={sendTo} onChange={(event) => setSendTo(event.target.value)} placeholder="Enter Solana address" />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="wallet-send-amount">Amount</Label>
-                    <Input
-                      id="wallet-send-amount"
-                      inputMode="decimal"
-                      value={sendAmount}
-                      onChange={(event) => setSendAmount(event.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-                {sendError ? <p className="text-sm text-red-700">{sendError}</p> : null}
-                {sendSuccess ? <p className="text-sm text-emerald-700">{sendSuccess}</p> : null}
-                <div className="flex flex-wrap gap-2">
-                  <Button className="rounded-full" onClick={() => void handleSend()} disabled={isSending}>
-                    {isSending ? "Sending..." : "Send SOL"}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="rounded-full"
-                    onClick={() => {
-                      setSendTo("");
-                      setSendAmount("");
-                      setSendError(null);
-                      setSendSuccess(null);
-                    }}
-                  >
-                    Reset
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] bg-[var(--brand-surface)] px-4 py-3 shadow-neoInsetSm">
+            ) : (
               <p className="text-xs leading-6 text-[var(--brand-muted-ink)]">
-                Supported now: {publicConfig.supportedWallets.join(", ")}.
+                Supported: {publicConfig.supportedWallets.join(", ")}.
               </p>
-              {connected ? (
-                <Button variant="ghost" className="rounded-full" onClick={() => void handleDisconnect()}>
-                  Disconnect wallet
-                </Button>
-              ) : (
-                <Button variant="secondary" className="rounded-full" onClick={() => setVisible(true)}>
-                  Open wallet picker
-                </Button>
-              )}
-            </div>
+            )}
           </div>
         </WalletDialog>
       ) : null}

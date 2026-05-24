@@ -11,7 +11,7 @@ pub struct CancelPayoutRun<'info> {
     pub authority: Signer<'info>,
     #[account(
         has_one = authority,
-        seeds = [Treasury::SEED_PREFIX, treasury.authority.as_ref(), treasury.mint.as_ref()],
+        seeds = [Treasury::SEED_PREFIX, treasury.authority.as_ref()],
         bump = treasury.bump
     )]
     pub treasury: Account<'info, Treasury>,
@@ -26,11 +26,13 @@ pub struct CancelPayoutRun<'info> {
 }
 
 pub fn handler(ctx: Context<CancelPayoutRun>) -> Result<()> {
+    require!(!ctx.accounts.treasury.paused, CipherpayError::TreasuryPaused);
+
     let payout_run = &mut ctx.accounts.payout_run;
     match payout_run.status {
         PayoutRunStatus::Completed => return err!(CipherpayError::RunAlreadyCompleted),
         PayoutRunStatus::Cancelled => return err!(CipherpayError::RunAlreadyCancelled),
-        PayoutRunStatus::Draft | PayoutRunStatus::InProgress => {}
+        PayoutRunStatus::Draft | PayoutRunStatus::Funded | PayoutRunStatus::InProgress => {}
     }
 
     let now = Clock::get()?.unix_timestamp;

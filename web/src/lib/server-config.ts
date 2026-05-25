@@ -27,6 +27,16 @@ type ServerConfig = {
   phase1TokenMint: string;
   phase1TokenSymbol: string;
   phase1TokenDecimals: number;
+  payoutRail: string;
+  magicblockPaymentsApi: string;
+  magicblockCluster: string;
+  magicblockEphemeralRpcUrl: string;
+  magicblockEphemeralWsUrl: string;
+  magicblockBaseRpcUrl: string;
+  magicblockValidator: string;
+  privatePayoutMint: string;
+  privatePayoutSymbol: string;
+  privatePayoutDecimals: number;
   supportedWallets: string[];
   databaseUrl: string;
   sessionCookieName: string;
@@ -38,6 +48,13 @@ type ServerConfig = {
   invoiceEncryptionKey: string;
   maxCsvUploadBytes: number;
   maxCsvImportRows: number;
+  magicblockProxyEnabled: boolean;
+  magicblockApiTimeoutMs: number;
+  privatePayoutMaxRows: number;
+  privatePayoutMaxSplit: number;
+  privatePayoutDefaultMinDelayMs: number;
+  privatePayoutDefaultMaxDelayMs: number;
+  privatePayoutRateLimitPerMinute: number;
 };
 
 let cachedServerConfig: ServerConfig | null = null;
@@ -61,6 +78,13 @@ export const getServerConfig = (): ServerConfig => {
     invoiceEncryptionKey: required("INVOICE_ENCRYPTION_KEY"),
     maxCsvUploadBytes: parseIntEnv("MAX_CSV_UPLOAD_BYTES", 2_097_152),
     maxCsvImportRows: parseIntEnv("MAX_CSV_IMPORT_ROWS", 1000),
+    magicblockProxyEnabled: (process.env.MAGICBLOCK_PROXY_ENABLED ?? "true").toLowerCase() !== "false",
+    magicblockApiTimeoutMs: parseIntEnv("MAGICBLOCK_API_TIMEOUT_MS", 20_000),
+    privatePayoutMaxRows: parseIntEnv("PRIVATE_PAYOUT_MAX_ROWS", 100),
+    privatePayoutMaxSplit: parseIntEnv("PRIVATE_PAYOUT_MAX_SPLIT", 1),
+    privatePayoutDefaultMinDelayMs: parseIntEnv("PRIVATE_PAYOUT_DEFAULT_MIN_DELAY_MS", 0),
+    privatePayoutDefaultMaxDelayMs: parseIntEnv("PRIVATE_PAYOUT_DEFAULT_MAX_DELAY_MS", 0),
+    privatePayoutRateLimitPerMinute: parseIntEnv("PRIVATE_PAYOUT_RATE_LIMIT_PER_MINUTE", 30),
   };
 
   return cachedServerConfig;

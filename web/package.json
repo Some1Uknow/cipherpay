@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "db:migrate:magicblock": "node scripts/apply-db-migration.mjs db/003_magicblock_private_payouts.sql",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"

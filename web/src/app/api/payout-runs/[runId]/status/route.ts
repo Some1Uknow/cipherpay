@@ -2,14 +2,22 @@ import { NextResponse } from "next/server";
 
 import { getAuthenticatedSession } from "@/lib/auth/server";
 import { updatePayoutRunExecution } from "@/lib/payout-runs/store";
-import type { PayoutRunStatus } from "@/lib/payout-runs/types";
+import type { PayoutRowStatus, PayoutRunStatus } from "@/lib/payout-runs/types";
 
 type UpdateRunStatusBody = {
   status?: PayoutRunStatus;
+  magicblockDepositSignature?: string | null;
+  magicblockDepositSendTo?: "base" | "ephemeral" | null;
+  magicblockPrivateStatus?: string | null;
+  privateBalanceBefore?: string | null;
+  privateBalanceAfter?: string | null;
   rows?: Array<{
     id?: string;
-    rowStatus?: "draft" | "ready" | "submitted" | "confirmed" | "failed";
+    rowStatus?: PayoutRowStatus;
     txSignature?: string | null;
+    magicblockTransferSignature?: string | null;
+    magicblockTransferSendTo?: "base" | "ephemeral" | null;
+    privateStatus?: string | null;
     errorMessage?: string | null;
   }>;
 };
@@ -37,9 +45,26 @@ export async function PATCH(request: Request, context: { params: Promise<{ runId
     runId,
     userId: session.userId,
     status: body.status,
+    magicblockDepositSignature: body.magicblockDepositSignature,
+    magicblockDepositSendTo: body.magicblockDepositSendTo,
+    magicblockPrivateStatus: body.magicblockPrivateStatus,
+    privateBalanceBefore: body.privateBalanceBefore,
+    privateBalanceAfter: body.privateBalanceAfter,
     rows: Array.isArray(body.rows)
       ? body.rows
-          .filter((row): row is { id: string; rowStatus: "draft" | "ready" | "submitted" | "confirmed" | "failed"; txSignature?: string | null; errorMessage?: string | null } => Boolean(row.id && row.rowStatus))
+          .filter(
+            (
+              row,
+            ): row is {
+              id: string;
+              rowStatus: PayoutRowStatus;
+              txSignature?: string | null;
+              magicblockTransferSignature?: string | null;
+              magicblockTransferSendTo?: "base" | "ephemeral" | null;
+              privateStatus?: string | null;
+              errorMessage?: string | null;
+            } => Boolean(row.id && row.rowStatus),
+          )
       : [],
   });
 

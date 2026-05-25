@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { Connection } from "@solana/web3.js";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,9 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { formatBaseUnits } from "@/lib/magicblock/amounts";
+import { getPrivatePayoutAsset, isMagicBlockPrivateRailEnabled } from "@/lib/magicblock/config";
+import { executePrivatePayoutRun } from "@/lib/magicblock/private-payouts";
 import { publicConfig } from "@/lib/public-config";
-import { assertSourceBalance, buildPayoutRunTransactionPlan, resolvePaymentContract } from "@/lib/payout-runs/execution";
-import type { PersistedPayoutRun, PayoutRowDraft, PayoutRunEntryMode } from "@/lib/payout-runs/types";
+import type { PersistedPayoutRun, PayoutRowDraft, PayoutRowStatus, PayoutRunEntryMode, PayoutRunStatus } from "@/lib/payout-runs/types";
 import {
   CSV_SAMPLE,
   createEmptyPayoutRow,
@@ -42,6 +45,10 @@ export function PayoutRunWorkspace({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [privateBalance, setPrivateBalance] = useState<string | null>(initialRun?.privateBalanceBefore ?? null);
+  const [depositNeeded, setDepositNeeded] = useState<string | null>(null);
+  const [paidPrivateCount, setPaidPrivateCount] = useState(() => initialRun?.rows.filter((row) => row.rowStatus === "paid_private").length ?? 0);
+  const privateAsset = useMemo(() => getPrivatePayoutAsset(), []);
 
   const initialSerialized = useMemo(
     () => serializeDraft(initialRun?.entryMode ?? "manual", initialRun?.rows ?? []),
@@ -50,8 +57,8 @@ export function PayoutRunWorkspace({
   const lastSavedRef = useRef(initialSerialized);
 
   const issues = validateRows(rows, {
-    symbol: publicConfig.phase1TokenSymbol,
-    decimals: publicConfig.phase1TokenDecimals,
+    symbol: privateAsset.symbol,
+    decimals: privateAsset.decimals,
   });
   const validCount = issues.filter((issue) => Object.keys(issue).length === 0).length;
   const invalidCount = issues.length - validCount;
@@ -64,8 +71,12 @@ export function PayoutRunWorkspace({
   const isReady = filledRows.length > 0 && invalidCount === 0;
   const draftFingerprint = useMemo(() => serializeDraft(mode, rows), [mode, rows]);
   const { connection } = useConnection();
-  const { publicKey, sendTransaction, connected } = useWallet();
-  const payoutConfigured = true;
+  const ephemeralConnection = useMemo(
+    () => new Connection(publicConfig.magicblockEphemeralRpcUrl, { commitment: "confirmed", wsEndpoint: publicConfig.magicblockEphemeralWsUrl }),
+    [],
+  );
+  const { publicKey, sendTransaction, signMessage, connected } = useWallet();
+  const payoutConfigured = isMagicBlockPrivateRailEnabled();
 
   function updateRow(id: string, field: keyof Omit<PayoutRowDraft, "id">, value: string) {
     setRows((current) =>
@@ -118,25 +129,40 @@ export function PayoutRunWorkspace({
     setSaveError(null);
     setSubmitState("idle");
     setSubmitError(null);
+    setPrivateBalance(null);
+    setDepositNeeded(null);
+    setPaidPrivateCount(0);
     lastSavedRef.current = serializeDraft("manual", nextRows);
   }
 
   async function persistRunStatus(params: {
-    status: "draft" | "ready" | "submitting" | "submitted" | "failed" | "completed";
+    status: PayoutRunStatus;
+    magicblockDepositSignature?: string | null;
+    magicblockDepositSendTo?: "base" | "ephemeral" | null;
+    magicblockPrivateStatus?: string | null;
+    privateBalanceBefore?: string | null;
+    privateBalanceAfter?: string | null;
     rows: Array<{
       id: string;
-      rowStatus: "draft" | "ready" | "submitted" | "confirmed" | "failed";
+      rowStatus: PayoutRowStatus;
       txSignature?: string | null;
+      magicblockTransferSignature?: string | null;
+      magicblockTransferSendTo?: "base" | "ephemeral" | null;
+      privateStatus?: string | null;
       errorMessage?: string | null;
     }>;
   }) {
     if (!runId) return;
 
-    await fetch(`/api/payout-runs/${runId}/status`, {
+    const response = await fetch(`/api/payout-runs/${runId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
     });
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(payload?.error ?? "Could not persist payout status.");
+    }
   }
 
   async function handleSubmitRun() {
@@ -160,130 +186,32 @@ export function PayoutRunWorkspace({
     setSubmitError(null);
 
     try {
-      const contract = await resolvePaymentContract();
-
-      const readyRows = rows.filter((row, index) => {
-        if (!isRowFilled(row) || Object.keys(issues[index] ?? {}).length > 0) return false;
-        return row.rowStatus !== "confirmed";
-      });
-      if (readyRows.length === 0) {
-        throw new Error("There are no unpaid valid rows to send. Add a new recipient or edit an existing confirmed row to resend.");
-      }
-      await assertSourceBalance({
-        connection,
-        owner: fundingWallet,
-        contract,
-        rows: readyRows,
-      });
-      const plan = await buildPayoutRunTransactionPlan({
-        connection,
+      const result = await executePrivatePayoutRun({
+        runId,
         payer: fundingWallet,
-        rows: readyRows,
-      });
-
-      setSubmitState("submitting");
-      await persistRunStatus({
-        status: "submitting",
-        rows: readyRows.map((row) => ({ id: row.id, rowStatus: "ready" })),
-      });
-
-      const nextRows = [...rows];
-      let anyFailures = false;
-
-      async function sendPreparedTransaction(transaction: (typeof plan.setupTransactions)[number]) {
-        const latestBlockhash = await connection.getLatestBlockhash("confirmed");
-        transaction.feePayer = fundingWallet;
-        transaction.recentBlockhash = latestBlockhash.blockhash;
-
-        const simulation = await connection.simulateTransaction(transaction);
-        if (simulation.value.err) {
-          const logs = simulation.value.logs?.join("\n") ?? "No program logs returned.";
-          throw new Error(`Transaction simulation failed before wallet signing: ${JSON.stringify(simulation.value.err)}\n${logs}`);
-        }
-
-        const signature = await sendTransaction(transaction, connection, {
-          preflightCommitment: "confirmed",
-          skipPreflight: false,
-        });
-
-        const confirmation = await connection.confirmTransaction(
-          {
-            signature,
-            blockhash: latestBlockhash.blockhash,
-            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-          },
-          "confirmed",
-        );
-
-        if (confirmation.value.err) {
-          throw new Error("Transaction confirmed with an on-chain error.");
-        }
-
-        return signature;
-      }
-
-      for (const transaction of plan.setupTransactions) {
-        await sendPreparedTransaction(transaction);
-      }
-      if (plan.fundTransaction) {
-        await sendPreparedTransaction(plan.fundTransaction);
-      }
-
-      for (const chunk of plan.executionChunks) {
-        try {
-          const signature = await sendPreparedTransaction(chunk.transaction);
-
-          await persistRunStatus({
-            status: "submitted",
-            rows: chunk.rowIds.map((id) => ({ id, rowStatus: "confirmed", txSignature: signature })),
-          });
-
-          for (const rowId of chunk.rowIds) {
-            const rowIndex = nextRows.findIndex((candidate) => candidate.id === rowId);
-            if (rowIndex >= 0) {
-              nextRows[rowIndex] = {
-                ...nextRows[rowIndex],
-                rowStatus: "confirmed",
-                txSignature: signature,
-                errorMessage: null,
-              };
-            }
+        rows,
+        baseConnection: connection,
+        ephemeralConnection,
+        sendTransaction,
+        signMessage: signMessage ?? undefined,
+        persistRunStatus,
+        onProgress: (event) => {
+          if (event.type === "balance") {
+            setPrivateBalance(event.privateBalance);
+            setDepositNeeded(event.shortfall);
           }
-        } catch (error) {
-          anyFailures = true;
-          const message = error instanceof Error ? error.message : "Payout failed.";
-          for (const rowId of chunk.rowIds) {
-            const rowIndex = nextRows.findIndex((candidate) => candidate.id === rowId);
-            if (rowIndex >= 0) {
-              nextRows[rowIndex] = {
-                ...nextRows[rowIndex],
-                rowStatus: "failed",
-                errorMessage: message,
-              };
-            }
+          if (event.type === "deposit" || event.type === "transfer") {
+            setSubmitState("submitting");
           }
-
-          await persistRunStatus({
-            status: "failed",
-            rows: chunk.rowIds.map((id) => ({ id, rowStatus: "failed", errorMessage: message })),
-          });
-        }
-      }
-
-      setRows(nextRows);
-      setSubmitState(anyFailures ? "failed" : "completed");
-
-      await persistRunStatus({
-        status: anyFailures ? "failed" : "completed",
-        rows: nextRows
-          .filter((row) => row.rowStatus === "confirmed" || row.rowStatus === "failed")
-          .map((row) => ({
-            id: row.id,
-            rowStatus: row.rowStatus as "confirmed" | "failed",
-            txSignature: row.txSignature,
-            errorMessage: row.errorMessage,
-          })),
+          if (event.type === "transfer") {
+            setPaidPrivateCount((current) => current + 1);
+          }
+        },
       });
+
+      setRows(result.rows);
+      setPrivateBalance(result.privateBalanceAfter ?? result.privateBalanceBefore);
+      setSubmitState(result.status === "completed" ? "completed" : "failed");
     } catch (error) {
       setSubmitState("failed");
       setSubmitError(error instanceof Error ? error.message : "Payout run failed.");
@@ -345,7 +273,8 @@ export function PayoutRunWorkspace({
                 <CardDescription className="mt-2 max-w-2xl">Draft rows, review totals, send.</CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="blue">{publicConfig.phase1TokenSymbol} only</Badge>
+                <Badge tone="blue">Private {privateAsset.symbol}</Badge>
+                <Badge tone="slate">Rail: MagicBlock</Badge>
                 <Badge tone="slate">Funding wallet: {walletAddress.slice(0, 4)}…{walletAddress.slice(-4)}</Badge>
                 {runId ? <Badge tone="slate">Draft saved</Badge> : null}
               </div>
@@ -481,10 +410,12 @@ export function PayoutRunWorkspace({
                             <div className="pt-2">
                               {rowHasIssues ? (
                                 <Badge tone="amber">Needs attention</Badge>
+                              ) : row.rowStatus === "paid_private" ? (
+                                <Badge tone="green">Paid privately</Badge>
                               ) : row.rowStatus === "confirmed" ? (
                                 <Badge tone="green">Confirmed</Badge>
-                              ) : row.rowStatus === "submitted" ? (
-                                <Badge tone="blue">Submitted</Badge>
+                              ) : row.rowStatus === "submitted" || row.rowStatus === "queued" ? (
+                                <Badge tone="blue">Queued</Badge>
                               ) : row.rowStatus === "failed" ? (
                                 <Badge tone="amber">Failed</Badge>
                               ) : row.recipientName || row.walletAddress || row.amount ? (
@@ -551,10 +482,14 @@ export function PayoutRunWorkspace({
                 <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--brand-ink-deep)]">
                   {total.toLocaleString(undefined, {
                     minimumFractionDigits: 0,
-                    maximumFractionDigits: publicConfig.phase1TokenDecimals,
+                    maximumFractionDigits: privateAsset.decimals,
                   })}{" "}
-                  {publicConfig.phase1TokenSymbol}
+                  {privateAsset.symbol}
                 </p>
+              </div>
+              <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm px-4 py-3 sm:col-span-2 xl:col-span-1">
+                <p className="text-xs text-[var(--brand-muted-ink)]">Paid privately</p>
+                <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--brand-ink-deep)]">{paidPrivateCount}</p>
               </div>
             </div>
 
@@ -567,11 +502,25 @@ export function PayoutRunWorkspace({
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Run state</p>
               <p className="mt-2 text-sm text-[var(--brand-ink-deep)]">
                 {isReady
-                  ? "Ready to send. Every current row passes validation."
+                  ? "Ready to send through the private payout rail."
                   : filledRows.length === 0
                     ? "Start by adding at least one payout row."
                     : "Fix the highlighted rows before sending."}
               </p>
+            </div>
+
+            <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm p-4">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Private balance</p>
+              <p className="mt-2 text-sm text-[var(--brand-ink-deep)]">
+                {privateBalance
+                  ? `${formatBaseUnits(privateBalance, privateAsset.decimals)} ${privateAsset.symbol}`
+                  : "Checked when you send."}
+              </p>
+              {depositNeeded ? (
+                <p className="mt-1 text-xs text-[var(--brand-muted-ink)]">
+                  Deposit needed: {formatBaseUnits(depositNeeded, privateAsset.decimals)} {privateAsset.symbol}
+                </p>
+              ) : null}
             </div>
 
             <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm p-4">
@@ -594,16 +543,16 @@ export function PayoutRunWorkspace({
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Execution</p>
               <p className="mt-2 text-sm text-[var(--brand-ink-deep)]">
                 {!payoutConfigured
-                  ? "Live SOL payouts are disabled in this build."
+                  ? "Private payouts are disabled in this build."
                   : submitState === "preparing"
-                    ? "Preparing escrow and checking funding balance…"
+                    ? "Checking MagicBlock, private balance, and deposit requirements…"
                     : submitState === "submitting"
-                      ? "Creating the run, funding escrow, then releasing chunks…"
+                      ? "Depositing wSOL if needed, then sending private transfers…"
                       : submitState === "completed"
-                        ? "All ready rows were confirmed with settlement signatures."
+                        ? "All ready rows were paid privately."
                         : submitState === "failed"
                           ? "Some payouts failed. Review row-level status below."
-                      : "SOL payouts settle from on-chain escrow in chunks of eight recipients."}
+                      : "CipherPay uses wSOL privately under the hood. Recipients receive SOL-equivalent value in their private balance."}
               </p>
               {submitError ? <p className="mt-2 text-xs text-red-700">{submitError}</p> : null}
             </div>
@@ -614,16 +563,18 @@ export function PayoutRunWorkspace({
               onClick={handleSubmitRun}
             >
               {!payoutConfigured
-                ? "SOL payouts unavailable"
+                ? "Private payouts unavailable"
                 : submitState === "preparing"
-                  ? "Preparing payout run…"
+                  ? "Prepare private deposit…"
                   : submitState === "submitting"
-                    ? "Sending payouts…"
-                    : "Send payouts"}
+                    ? "Send private payouts…"
+                    : rows.some((row) => row.rowStatus === "failed")
+                      ? "Retry failed rows"
+                      : "Send private payouts"}
             </Button>
 
             <p className="text-xs leading-6 text-[var(--brand-muted-ink)]">
-              Sending creates an on-chain SOL escrow, funds it once, then releases recipients in safe chunks.
+              Private SOL-equivalent payouts are powered by wSOL and MagicBlock Private Payments.
             </p>
           </CardContent>
         </Card>

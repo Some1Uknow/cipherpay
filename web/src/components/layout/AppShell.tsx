@@ -203,7 +203,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </aside>
 
           <div className={cn("min-w-0 flex-1 min-h-0", collapsed ? "lg:pl-1" : "")}>
-            <main className="grid h-full min-w-0 gap-4 overflow-y-auto rounded-[34px] bg-[var(--brand-surface)] p-4 shadow-neo sm:p-5 lg:p-6">
+            <main className="grid h-full min-w-0 auto-rows-max content-start gap-4 overflow-y-auto rounded-[34px] bg-[var(--brand-surface)] p-4 shadow-neo sm:p-5 lg:p-6">
               {children}
             </main>
           </div>

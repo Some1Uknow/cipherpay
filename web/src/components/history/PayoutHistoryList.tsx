@@ -72,9 +72,13 @@ function RunDetailModal({
   const uniqueSettlementTxs = Array.from(new Set(run.rows.map((row) => row.txSignature).filter(Boolean))) as string[];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/28 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true">
-      <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[32px] bg-[var(--brand-surface)] shadow-neoLg">
-        <div className="flex items-start justify-between gap-4 border-b border-white/70 px-5 py-5 sm:px-7">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(15,23,42,0.34)] px-4 py-5 backdrop-blur-[10px] sm:px-6 sm:py-7" role="dialog" aria-modal="true">
+      <button type="button" className="absolute inset-0" aria-label="Close run details" onClick={onClose} />
+
+      <div className="relative w-full max-w-[1120px] overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,248,255,0.94))] shadow-[0_28px_80px_rgba(15,23,42,0.18)]">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,rgba(14,91,255,0.14),transparent_72%)]" />
+
+        <div className="relative flex items-start justify-between gap-4 border-b border-[rgba(196,210,228,0.72)] px-5 py-5 sm:px-7">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-muted-ink)]">Run details</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-[-0.045em] text-[var(--brand-ink-deep)]">{runTitle(run)}</h2>
@@ -87,7 +91,7 @@ function RunDetailModal({
           </Button>
         </div>
 
-        <div className="max-h-[calc(92vh-96px)] overflow-y-auto px-5 py-5 sm:px-7">
+        <div className="relative max-h-[min(78dvh,820px)] overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               ["Funding wallet", shorten(run.walletAddress, 6)],
@@ -229,11 +233,11 @@ export function PayoutHistoryList({ runs }: PayoutHistoryListProps) {
 
   return (
     <>
-      <div className="grid gap-4">
+      <div className="grid content-start gap-3.5">
         {runs.map((run) => (
-          <button key={run.id} type="button" className="text-left" onClick={() => setSelectedRunId(run.id)}>
+          <button key={run.id} type="button" className="block w-full text-left" onClick={() => setSelectedRunId(run.id)}>
             <Card className="transition duration-200 hover:-translate-y-0.5 hover:shadow-neoLg">
-              <CardContent className="flex flex-col gap-4 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <CardContent className="flex flex-col gap-3 px-5 py-5 sm:px-6 sm:py-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-base font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">{runTitle(run)}</p>
                   <p className="mt-1 text-sm text-[var(--brand-muted-ink)]">

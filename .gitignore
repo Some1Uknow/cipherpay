@@ -9,3 +9,5 @@ test-ledger
 docs/
 cipherpay-*.png
 .playwright-mcp/
+videos/**/node_modules/
+videos/

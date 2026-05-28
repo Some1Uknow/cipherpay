@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { LandingSignInCTA } from "@/components/auth/LandingSignInCTA";
+import { CipherPayArchitectureDiagram } from "@/components/marketing/CipherPayArchitectureDiagram";
 import { WalletSignInButton } from "@/components/auth/WalletSignInButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,70 +33,6 @@ const stats = [
   { k: "Receipts", v: "Planned" },
   { k: "Execution", v: "Next layer" },
 ] as const;
-
-function ArchitectureDiagram() {
-  return (
-    <svg role="img" aria-label="CipherPay architecture diagram" viewBox="0 0 980 420" className="h-auto w-full">
-      <title>CipherPay architecture</title>
-      <defs>
-        <linearGradient id="cpAccent" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#0E5BFF" stopOpacity="0.95" />
-          <stop offset="100%" stopColor="#4D7CFF" stopOpacity="0.85" />
-        </linearGradient>
-        <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="10" stdDeviation="18" floodColor="rgba(15,23,42,0.12)" />
-        </filter>
-      </defs>
-
-      <rect x="0" y="0" width="980" height="420" rx="26" fill="rgba(14,91,255,0.04)" />
-
-      <g filter="url(#soft)">
-        <rect x="64" y="92" width="250" height="108" rx="22" fill="var(--brand-surface)" />
-        <rect x="365" y="72" width="250" height="148" rx="22" fill="var(--brand-surface)" />
-        <rect x="666" y="62" width="250" height="158" rx="22" fill="var(--brand-surface)" />
-
-        <rect x="365" y="262" width="250" height="98" rx="22" fill="var(--brand-surface)" />
-        <rect x="666" y="272" width="250" height="88" rx="22" fill="var(--brand-surface)" />
-      </g>
-
-      <g fontFamily="ui-sans-serif, system-ui" fill="rgba(61,72,82,0.9)">
-        <text x="92" y="128" fontSize="14" fontWeight="700">Operator</text>
-        <text x="92" y="152" fontSize="12" fill="rgba(61,72,82,0.62)">Wallet connect + signed auth</text>
-        <text x="92" y="176" fontSize="12" fill="rgba(61,72,82,0.62)">Compose + validate payout rows</text>
-
-        <text x="393" y="108" fontSize="14" fontWeight="700">Next.js app</text>
-        <text x="393" y="132" fontSize="12" fill="rgba(61,72,82,0.62)">Review surface: totals + exceptions</text>
-        <text x="393" y="156" fontSize="12" fill="rgba(61,72,82,0.62)">Protected routes: /pay, /history</text>
-        <text x="393" y="180" fontSize="12" fill="rgba(61,72,82,0.62)">Receipts mapped back to rows</text>
-
-        <text x="694" y="98" fontSize="14" fontWeight="700">Execution (later)</text>
-        <text x="694" y="122" fontSize="12" fill="rgba(61,72,82,0.62)">Transfers / batch program</text>
-        <text x="694" y="146" fontSize="12" fill="rgba(61,72,82,0.62)">tx ids + confirmations</text>
-        <text x="694" y="170" fontSize="12" fill="rgba(61,72,82,0.62)">Reconcile outcomes</text>
-
-        <text x="393" y="298" fontSize="14" fontWeight="700">Postgres (planned)</text>
-        <text x="393" y="322" fontSize="12" fill="rgba(61,72,82,0.62)">payout_runs, payout_rows, receipts</text>
-
-        <text x="694" y="308" fontSize="14" fontWeight="700">Solana RPC</text>
-        <text x="694" y="332" fontSize="12" fill="rgba(61,72,82,0.62)">Confirm + link explorers</text>
-      </g>
-
-      <g stroke="url(#cpAccent)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M314 146 C340 146 340 146 365 146" />
-        <path d="M615 146 C640 146 640 146 666 146" />
-        <path d="M490 220 C490 240 490 240 490 262" />
-        <path d="M740 220 C740 246 740 246 740 272" />
-      </g>
-
-      <g fill="#0E5BFF">
-        <circle cx="365" cy="146" r="5" />
-        <circle cx="666" cy="146" r="5" />
-        <circle cx="490" cy="262" r="5" />
-        <circle cx="740" cy="272" r="5" />
-      </g>
-    </svg>
-  );
-}
 
 export default async function LandingPage({ searchParams }: LandingPageProps) {
   const resolvedSearchParams = await searchParams;
@@ -170,37 +107,33 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
         </div>
       </section>
 
-      {/* ARCHITECTURE */}
-      <section id="architecture" className="relative">
-        <div className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col justify-center px-6 py-16 sm:px-8 lg:px-10">
-          <div className="grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="max-w-xl">
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Architecture</p>
-              <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">A clean boundary between review and settlement.</h2>
-              <p className="mt-5 text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
-                Ship a review surface first, then wire settlement. It stays operator-friendly and audit-friendly as the backend evolves.
-              </p>
+      <section id="architecture" className="relative border-t border-[rgba(148,163,184,0.16)]">
+        <div className="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-10 lg:py-16">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">End-to-end architecture</p>
+            <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">
+              One diagram for the entire payout path.
+            </h2>
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
+              Wallet auth, payout run persistence, MagicBlock transaction building, wSOL deposit, private transfer settlement, and row-level evidence all in one view.
+            </p>
+          </div>
 
-              <div className="mt-8 grid gap-3">
-                {[
-                  ["Auth", "Signed wallet challenge creates a short-lived session"],
-                  ["Review", "Totals + exceptions computed consistently"],
-                  ["Receipts", "Map outcomes back to rows (tx id, confirmation)"],
-                ].map(([k, v]) => (
-                  <div key={k} className="rounded-[24px] bg-[var(--brand-surface)] p-4 shadow-neoInsetSm">
-                    <p className="text-sm font-semibold text-[var(--brand-ink)]">{k}</p>
-                    <p className="mt-1 text-sm text-[var(--brand-muted-ink)]">{v}</p>
-                  </div>
-                ))}
+          <div className="mt-10">
+            <CipherPayArchitectureDiagram />
+          </div>
+
+          <div className="mt-6 grid gap-3 lg:grid-cols-3">
+            {[
+              ["Control plane", "Browser, Next.js routes, API validation, and Postgres state stay on the review side."],
+              ["Settlement rail", "SOL is wrapped to wSOL only when needed, then deposits and private transfers follow MagicBlock sendTo routing."],
+              ["Evidence", "Deposit signatures, row transfer signatures, validator metadata, and retry state flow back into history."],
+            ].map(([k, v]) => (
+              <div key={k} className="rounded-[24px] bg-[var(--brand-surface)] p-4 shadow-neoInsetSm">
+                <p className="text-sm font-semibold text-[var(--brand-ink)]">{k}</p>
+                <p className="mt-1 text-sm leading-7 text-[var(--brand-muted-ink)]">{v}</p>
               </div>
-            </div>
-
-            <Card className="p-6">
-              <ArchitectureDiagram />
-              <p className="mt-4 text-xs leading-6 text-[var(--brand-muted-ink)]">
-                Diagram is simplified on purpose—enough detail for reviewers, without a wall of text.
-              </p>
-            </Card>
+            ))}
           </div>
         </div>
       </section>

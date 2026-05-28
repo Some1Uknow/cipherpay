@@ -150,6 +150,74 @@ textarea {
   }
 }
 
+@keyframes diagram-pulse {
+  0%,
+  100% {
+    stroke-opacity: 0.82;
+  }
+  50% {
+    stroke-opacity: 1;
+  }
+}
+
+@keyframes diagram-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.diagram-board .diagram-path-primary,
+.diagram-board .diagram-path-settle,
+.diagram-board .diagram-path-evidence {
+  animation: diagram-pulse 4.8s ease-in-out infinite;
+}
+
+.diagram-board .diagram-path-settle {
+  animation-delay: 240ms;
+}
+
+.diagram-board .diagram-path-evidence {
+  animation-delay: 480ms;
+}
+
+.diagram-board .diagram-logo-soft {
+  animation: diagram-float 5.6s ease-in-out infinite;
+}
+
+.diagram-flow {
+  background: transparent !important;
+}
+
+.diagram-flow .react-flow__renderer,
+.diagram-flow .react-flow__pane,
+.diagram-flow .react-flow__viewport {
+  background: transparent !important;
+}
+
+.diagram-flow .react-flow__node {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.diagram-flow .react-flow__edge-path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.diagram-flow .react-flow__handle {
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  border: 0;
+  background: transparent;
+}
+
 .wallet-adapter-button {
   align-items: center !important;
   border: 0 !important;
@@ -239,5 +307,12 @@ textarea {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .diagram-board .diagram-path-primary,
+  .diagram-board .diagram-path-settle,
+  .diagram-board .diagram-path-evidence,
+  .diagram-board .diagram-logo-soft {
+    animation: none !important;
   }
 }

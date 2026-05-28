@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Plus_Jakarta_Sans } from "next/font/google";
 
+import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { SolanaProvider } from "@/components/SolanaProvider";

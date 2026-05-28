@@ -1,38 +1,78 @@
 # CipherPay
-CipherPay is a Solana protocol for confidential invoicing, payments, and auditable receipts.
 
-## MVP 
-Invoice and payment program
+CipherPay is a Solana payout application for private, auditable payment runs.
 
-## Roadmap
-- [x] Invoice and payments
-  - [x] Creation of user account
-  - [x] Creation of invoice
-  - [x] Being able to pay a invoice
-  - [x] Creation of receipt
-- [ ] Confidential Transfer
-- [ ] Invoice Encryption
-- [ ] ZK compression
-  - [ ] Account compression
-  - [ ] Token compression
+Phase 2 uses MagicBlock Private Payments as the default payout rail. Users fund payouts with SOL, while CipherPay wraps SOL to wSOL internally and sends private SPL transfers through MagicBlock ephemeral rollups.
 
-## Dependencies
-- When including RSA keys
-  - Perl
+## Current Architecture
 
-## Considerations
-- Forward secrecy
-  - Per session key
-- Quantum proof
-- Homomorphic encryption
+- Frontend: Next.js app in `web/`
+- Auth: Sign-in with Solana wallet
+- Database: Postgres
+- Public fallback rail: existing Anchor public SOL payout program
+- Default private rail: MagicBlock Private Payments
+- User-facing asset: SOL
+- Internal private asset: wSOL native mint
+- wSOL mint: `So11111111111111111111111111111111111111112`
 
-## Implementation Examples
-https://github.com/solana-developers/program-examples/tree/main/tokens/token-2022/nft-meta-data-pointer/anchor-example 
+Private payout completion is payer-side: a row is paid when the MagicBlock private transfer confirms. Recipient withdrawal from MagicBlock private balance is outside the payer completion path.
 
-https://github.com/solana-developers/program-examples/tree/main/tokens/token-2022
+## Run Locally
 
-https://github.com/deanmlittle/anchor-dice-2023/blob/master/programs/soldice-anchor/src/contexts/resolve_bet.rs 
+Install dependencies:
 
-https://github.com/deanmlittle/anchor-instruction-sysvar/blob/master/src/instructions/ed25519.rs
+```bash
+pnpm install
+cd web
+pnpm install
+```
 
-https://github.com/solana-program/token-2022/blob/main/zk-token-protocol-paper/part1.pdf 
+Configure `web/.env.local` from `web/.env.example`, then apply the MagicBlock payout schema:
+
+```bash
+cd web
+pnpm db:migrate:magicblock
+```
+
+Start the app:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+## Verification
+
+From the repo root:
+
+```bash
+npx jest
+```
+
+From `web/`:
+
+```bash
+pnpm typecheck
+pnpm build
+```
+
+## Private Payout Flow
+
+1. Add recipients.
+2. Review total.
+3. Send private payouts.
+4. CipherPay checks MagicBlock health and mint initialization.
+5. CipherPay checks private balance when MagicBlock auth is available.
+6. If needed, CipherPay wraps SOL to wSOL and deposits to MagicBlock.
+7. CipherPay sends private `ephemeral -> ephemeral` transfers to recipients.
+8. History records deposit and row-level private transfer evidence.
+
+## Mainnet Notes
+
+Before mainnet use:
+
+- Initialize the selected MagicBlock validator for the wSOL mint if needed.
+- Run a dust SOL/wSOL test.
+- Confirm recipient private balance visibility through the intended MagicBlock-compatible read path.
+- Add USDC only after the SOL/wSOL flow is stable.

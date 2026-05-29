@@ -163,7 +163,7 @@ export async function fastSendPrivateSol(args: FastSendPrivateSolArgs): Promise<
   }
 }
 
-function isSubmittingStatus(status: string): boolean {
+export function isSubmittingStatus(status: string): boolean {
   const normalized = status.toLowerCase();
   return (
     normalized.includes("submit") ||
@@ -178,7 +178,7 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function isRetryableWithdrawError(error: unknown, isRootNotFoundError: (value: unknown) => boolean): boolean {
+export function isRetryableWithdrawError(error: unknown, isRootNotFoundError: (value: unknown) => boolean): boolean {
   if (isRootNotFoundError(error)) return true;
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   return (

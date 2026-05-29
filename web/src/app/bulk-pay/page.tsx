@@ -11,8 +11,8 @@ export default async function BulkPayPage() {
     <>
       <PageHeader
         eyebrow="Bulk pay"
-        title="Send a payout batch"
-        description="Paste a CSV, review the rows, and send one clean batch."
+        title="Run private payroll"
+        description="Paste a roster, validate every row, then fund one Cloak batch and stream private payouts recipient by recipient."
         badge="CSV"
       />
       <PayoutRunWorkspace walletAddress={session.walletAddress} initialRun={initialRun} entryMode="csv" />

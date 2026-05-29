@@ -11,8 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { decimalAmountToBaseUnits } from "@/lib/cloak/amounts";
+import type { BatchProgressEvent } from "@/lib/cloak/batch-payroll";
 import type { FastSendPhase } from "@/lib/cloak/fast-send";
 import { getPrivatePayoutAsset, isCloakPrivateRailEnabled } from "@/lib/cloak/config";
+import { quoteCloakSolWithdrawal } from "@/lib/cloak/fees";
 import type { PersistedPayoutRun, PayoutRowDraft, PayoutRowStatus, PayoutRunEntryMode, PayoutRunStatus } from "@/lib/payout-runs/types";
 import { cn } from "@/lib/utils";
 import {
@@ -36,10 +38,20 @@ type PaymentReceipt = {
   walletAddress: string;
   amount: string;
   assetSymbol: string;
+  recipientCount?: number;
+  confirmedCount?: number;
+  failedCount?: number;
   depositSignature?: string | null;
   withdrawSignature?: string | null;
   errorMessage?: string | null;
   createdAt: string;
+};
+
+type BulkProgress = {
+  total: number;
+  confirmed: number;
+  failed: number;
+  activePosition: number | null;
 };
 
 const EXECUTION_PHASES: Array<{ id: FastSendPhase; label: string; description: string }> = [
@@ -75,6 +87,11 @@ function receiptTitle(status: ReceiptStatus) {
   if (status === "success") return "Payment sent";
   if (status === "recoverable") return "Payment needs recovery";
   return "Payment failed";
+}
+
+function normalizeProgressPercent(percent: number) {
+  const normalized = percent <= 1 ? percent * 100 : percent;
+  return Math.max(0, Math.min(100, Math.round(normalized)));
 }
 
 function downloadReceiptPng(receipt: PaymentReceipt) {
@@ -113,6 +130,7 @@ function downloadReceiptPng(receipt: PaymentReceipt) {
   const rows = [
     ["Recipient", receipt.recipientName || "Recipient"],
     ["Wallet", receipt.walletAddress],
+    ...(receipt.recipientCount ? [["Rows", `${receipt.confirmedCount ?? 0}/${receipt.recipientCount} paid${receipt.failedCount ? `, ${receipt.failedCount} failed` : ""}`]] : []),
     ["Deposit", shortSignature(receipt.depositSignature, 10)],
     ["Withdraw", shortSignature(receipt.withdrawSignature, 10)],
     ["Run", receipt.runId ?? "Not saved"],
@@ -179,10 +197,12 @@ function ExecutionStatusBox({
   activePhase,
   submitState,
   proofProgress,
+  bulkProgress,
 }: {
   activePhase: FastSendPhase | null;
   submitState: SubmitState;
   proofProgress: number | null;
+  bulkProgress?: BulkProgress | null;
 }) {
   const activeIndex = activePhase ? EXECUTION_PHASES.findIndex((phase) => phase.id === activePhase) : -1;
   const allComplete = submitState === "completed";
@@ -195,7 +215,11 @@ function ExecutionStatusBox({
     <div className="rounded-[24px] border border-white/80 bg-white/72 p-3 shadow-neoInsetSm">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand-muted-ink)]">Execution</p>
-        {proofProgress !== null && submitState !== "completed" ? (
+        {bulkProgress ? (
+          <p className="text-[11px] font-semibold text-[var(--brand-primary)]">
+            {bulkProgress.confirmed}/{bulkProgress.total} paid
+          </p>
+        ) : proofProgress !== null && submitState !== "completed" ? (
           <p className="text-[11px] font-semibold text-[var(--brand-primary)]">Proof {proofProgress}%</p>
         ) : null}
       </div>
@@ -238,7 +262,11 @@ function ExecutionStatusBox({
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-[var(--brand-ink)]">{phase.label}</p>
                   <p className="truncate text-xs text-[var(--brand-muted-ink)]">
-                    {active && proofProgress !== null ? `${phase.description} ${proofProgress}%` : phase.description}
+                    {active && bulkProgress?.activePosition
+                      ? `Row ${bulkProgress.activePosition} of ${bulkProgress.total}`
+                      : active && proofProgress !== null
+                        ? `${phase.description} ${proofProgress}%`
+                        : phase.description}
                   </p>
                 </div>
               </div>
@@ -285,6 +313,7 @@ function PaymentReceiptModal({
             {[
               ["Recipient", receipt.recipientName || "Recipient"],
               ["Wallet", receipt.walletAddress],
+              ...(receipt.recipientCount ? [["Rows", `${receipt.confirmedCount ?? 0}/${receipt.recipientCount} paid${receipt.failedCount ? ` · ${receipt.failedCount} failed` : ""}`]] : []),
               ["Deposit tx", shortSignature(receipt.depositSignature)],
               ["Private transfer", shortSignature(receipt.withdrawSignature)],
               ["Run", receipt.runId ?? "Not saved"],
@@ -341,6 +370,7 @@ export function PayoutRunWorkspace({
   const [submitProgress, setSubmitProgress] = useState<string | null>(null);
   const [activePhase, setActivePhase] = useState<FastSendPhase | null>(null);
   const [proofProgress, setProofProgress] = useState<number | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<BulkProgress | null>(null);
   const [receipt, setReceipt] = useState<PaymentReceipt | null>(null);
   const privateAsset = useMemo(() => getPrivatePayoutAsset(), []);
   const rowsToPersist = useMemo(() => (entryMode === "manual" ? rows.slice(0, 1) : rows), [entryMode, rows]);
@@ -388,6 +418,7 @@ export function PayoutRunWorkspace({
     setSubmitProgress(null);
     setActivePhase(null);
     setProofProgress(null);
+    setBulkProgress(null);
   }
 
   function addRow() {
@@ -397,6 +428,7 @@ export function PayoutRunWorkspace({
     setSubmitProgress(null);
     setActivePhase(null);
     setProofProgress(null);
+    setBulkProgress(null);
   }
 
   function removeRow(id: string) {
@@ -406,6 +438,7 @@ export function PayoutRunWorkspace({
     setSubmitProgress(null);
     setActivePhase(null);
     setProofProgress(null);
+    setBulkProgress(null);
   }
 
   function loadCsvIntoTable() {
@@ -418,6 +451,7 @@ export function PayoutRunWorkspace({
       setSubmitProgress(null);
       setActivePhase(null);
       setProofProgress(null);
+      setBulkProgress(null);
     } catch (error) {
       setCsvError(error instanceof Error ? error.message : "CSV import failed.");
     }
@@ -436,6 +470,7 @@ export function PayoutRunWorkspace({
     setSubmitProgress(null);
     setActivePhase(null);
     setProofProgress(null);
+    setBulkProgress(null);
     setReceipt(null);
     lastSavedRef.current = serializeDraft(entryMode, nextRows);
   }
@@ -444,11 +479,15 @@ export function PayoutRunWorkspace({
     status: PayoutRunStatus;
     privateDepositSignature?: string | null;
     privateStatus?: string | null;
+    currentChangeUtxoCommitment?: string | null;
     rows: Array<{
       id: string;
       rowStatus: PayoutRowStatus;
       txSignature?: string | null;
       privateWithdrawSignature?: string | null;
+      grossBaseUnits?: string | null;
+      feeBaseUnits?: string | null;
+      netBaseUnits?: string | null;
       privateStatus?: string | null;
       errorMessage?: string | null;
     }>;
@@ -477,13 +516,8 @@ export function PayoutRunWorkspace({
       return;
     }
 
-    if (entryMode !== "manual") {
-      setSubmitError("Bulk Cloak payroll is implemented in Phase 5. Use Pay for one recipient now.");
-      return;
-    }
-
     if (privateAsset.symbol !== "SOL") {
-      setSubmitError("Phase 4 supports private SOL sends only.");
+      setSubmitError("Private payouts currently support SOL only.");
       return;
     }
 
@@ -502,6 +536,188 @@ export function PayoutRunWorkspace({
       return;
     }
 
+    if (entryMode === "csv") {
+      const validRows = rowsToPersist
+        .map((row, index) => ({ row, index, issues: issues[index] ?? {} }))
+        .filter(({ row, issues }) => isRowFilled(row) && Object.keys(issues).length === 0);
+
+      if (validRows.length === 0) {
+        setSubmitError("Load at least one valid CSV row before running bulk pay.");
+        return;
+      }
+
+      setSubmitState("preparing");
+      setSubmitError(null);
+      setSubmitProgress("Preparing batch deposit");
+      setActivePhase("deposit-proof");
+      setProofProgress(null);
+      setBulkProgress({ total: validRows.length, confirmed: 0, failed: 0, activePosition: null });
+      setReceipt(null);
+
+      const quotedRows = validRows.map(({ row, index }) => {
+        const amountBaseUnits = decimalAmountToBaseUnits(row.amount, privateAsset.decimals);
+        const quote = quoteCloakSolWithdrawal(amountBaseUnits);
+        return { row, index, amountBaseUnits, quote };
+      });
+
+      const queuedIds = new Set(quotedRows.map(({ row }) => row.id));
+      setRows((current) =>
+        current.map((currentRow) =>
+          queuedIds.has(currentRow.id)
+            ? { ...currentRow, rowStatus: "queued", privateStatus: "queued", errorMessage: null, txSignature: null }
+            : currentRow,
+        ),
+      );
+
+      await persistRunStatus({
+        status: "depositing",
+        privateStatus: "depositing",
+        rows: quotedRows.map(({ row, amountBaseUnits, quote }) => ({
+          id: row.id,
+          rowStatus: "queued",
+          grossBaseUnits: amountBaseUnits.toString(),
+          feeBaseUnits: quote.totalFeeLamports.toString(),
+          netBaseUnits: quote.netLamports.toString(),
+          privateStatus: "queued",
+          errorMessage: null,
+        })),
+      });
+
+      let depositSignature: string | null = null;
+      let confirmedCount = 0;
+      let failedCount = 0;
+
+      const applyBatchProgress = (event: BatchProgressEvent) => {
+        if (event.type === "deposit") {
+          setActivePhase(event.phase === "submit" || event.phase === "confirmed" ? "deposit-submit" : "deposit-proof");
+          if (event.proofPercent !== undefined) setProofProgress(event.proofPercent);
+          setSubmitProgress(event.message ?? (event.phase === "confirmed" ? "Batch deposit confirmed" : "Preparing batch deposit"));
+          return;
+        }
+
+        if (event.phase === "proof") {
+          setActivePhase("withdraw-proof");
+          setSubmitState("preparing");
+        } else if (event.phase === "submit") {
+          setActivePhase("withdraw-submit");
+          setSubmitState("submitting");
+        }
+        if (event.proofPercent !== undefined) setProofProgress(event.proofPercent);
+        if (event.phase === "confirmed") confirmedCount += 1;
+        if (event.phase === "failed") failedCount += 1;
+        setBulkProgress({
+          total: validRows.length,
+          confirmed: confirmedCount,
+          failed: failedCount,
+          activePosition: event.phase === "confirmed" || event.phase === "failed" ? null : event.position,
+        });
+        setSubmitProgress(event.message ?? `Processing row ${event.position} of ${validRows.length}`);
+
+        setRows((current) =>
+          current.map((currentRow) => {
+            if (currentRow.id !== event.rowId) return currentRow;
+            if (event.phase === "confirmed") {
+              return {
+                ...currentRow,
+                rowStatus: "paid_private",
+                privateStatus: "paid_private",
+                privateWithdrawSignature: event.signature ?? currentRow.privateWithdrawSignature,
+                txSignature: event.signature ?? currentRow.txSignature,
+                errorMessage: null,
+              };
+            }
+            if (event.phase === "failed") {
+              return {
+                ...currentRow,
+                rowStatus: "failed",
+                privateStatus: "failed",
+                errorMessage: event.errorMessage ?? event.message ?? "Private transfer failed.",
+              };
+            }
+            return { ...currentRow, rowStatus: "paying", privateStatus: event.phase, errorMessage: null };
+          }),
+        );
+      };
+
+      try {
+        const { runCloakBatchPayroll } = await import("@/lib/cloak/batch-payroll");
+        const result = await runCloakBatchPayroll({
+          runId,
+          mint: new PublicKey(privateAsset.mint),
+          sender: publicKey,
+          connection,
+          signTransaction,
+          signMessage,
+          rows: quotedRows.map(({ row, index, amountBaseUnits, quote }) => ({
+            id: row.id,
+            position: index + 1,
+            recipient: row.walletAddress.trim(),
+            amountBaseUnits,
+            feeBaseUnits: quote.totalFeeLamports,
+            netBaseUnits: quote.netLamports,
+          })),
+          persistRunStatus: async (event) => {
+            if (event.privateDepositSignature) depositSignature = event.privateDepositSignature;
+            await persistRunStatus({
+              status: event.status ?? "paying",
+              privateDepositSignature: event.privateDepositSignature,
+              privateStatus: event.privateStatus,
+              currentChangeUtxoCommitment: event.currentChangeUtxoCommitment,
+              rows: event.rows ?? [],
+            });
+          },
+          onProgress: applyBatchProgress,
+        });
+
+        const success = result.failed === 0;
+        setSubmitState(success ? "completed" : "failed");
+        setActivePhase(success ? "success" : activePhase);
+        setProofProgress(success ? 100 : null);
+        setSubmitProgress(success ? "Bulk payment complete" : `${result.confirmed}/${result.total} recipients paid. ${result.failed} failed.`);
+        setBulkProgress({ total: result.total, confirmed: result.confirmed, failed: result.failed, activePosition: null });
+        setRunId(null);
+        setReceipt({
+          status: success ? "success" : "recoverable",
+          runId,
+          mode: entryMode,
+          recipientName: `${result.total} recipients`,
+          walletAddress: "CSV batch",
+          amount: total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: privateAsset.decimals }),
+          assetSymbol: privateAsset.symbol,
+          recipientCount: result.total,
+          confirmedCount: result.confirmed,
+          failedCount: result.failed,
+          depositSignature: result.depositSignature,
+          errorMessage: success ? null : `${result.failed} rows need review or recovery.`,
+          createdAt: new Date().toISOString(),
+        });
+        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Bulk private payment failed.";
+        setSubmitState("failed");
+        setSubmitError(message);
+        setSubmitProgress(null);
+        setProofProgress(null);
+        setBulkProgress((current) => current ? { ...current, activePosition: null } : null);
+        setReceipt({
+          status: depositSignature ? "recoverable" : "failed",
+          runId,
+          mode: entryMode,
+          recipientName: `${validRows.length} recipients`,
+          walletAddress: "CSV batch",
+          amount: total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: privateAsset.decimals }),
+          assetSymbol: privateAsset.symbol,
+          recipientCount: validRows.length,
+          confirmedCount,
+          failedCount: validRows.length - confirmedCount,
+          depositSignature,
+          errorMessage: message,
+          createdAt: new Date().toISOString(),
+        });
+        return;
+      }
+    }
+
     const row = rowsToPersist[0];
     if (!row) return;
 
@@ -510,6 +726,7 @@ export function PayoutRunWorkspace({
     setSubmitProgress("Preparing private payment");
     setActivePhase("deposit-proof");
     setProofProgress(null);
+    setBulkProgress(null);
     setReceipt(null);
 
     let depositSignature: string | null = null;
@@ -545,8 +762,7 @@ export function PayoutRunWorkspace({
         },
         onProgress: setSubmitProgress,
         onProofProgress: (percent) => {
-          const normalized = percent <= 1 ? percent * 100 : percent;
-          setProofProgress(Math.max(0, Math.min(100, Math.round(normalized))));
+          setProofProgress(normalizeProgressPercent(percent));
         },
         onDepositConfirmed: async ({ signature }) => {
           depositSignature = signature;
@@ -720,25 +936,40 @@ export function PayoutRunWorkspace({
 
           <CardContent className="pt-5">
             {mode === "csv" ? (
-              <div className="mt-6 grid gap-4 rounded-[28px] bg-[var(--brand-surface)] p-5 shadow-neoInsetSm">
+              <div className="mt-6 grid gap-4 rounded-[30px] border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.88),rgba(238,247,255,0.7))] p-5 shadow-neoInsetSm">
+                <div className="grid gap-3 md:grid-cols-3">
+                  {[
+                    ["1", "Paste roster", "Drop in recipient_name, wallet_address, amount."],
+                    ["2", "Fix only what matters", `${validCount} valid · ${invalidCount} needs attention.`],
+                    ["3", "Run privately", "One batch deposit, then private row payouts."],
+                  ].map(([step, title, body]) => (
+                    <div key={step} className="rounded-[24px] bg-[var(--brand-surface)] p-4 shadow-neoSm">
+                      <div className="grid size-8 place-items-center rounded-full bg-[var(--brand-primary)] text-xs font-bold text-white">{step}</div>
+                      <p className="mt-3 text-sm font-semibold text-[var(--brand-ink)]">{title}</p>
+                      <p className="mt-1 text-xs leading-5 text-[var(--brand-muted-ink)]">{body}</p>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[var(--brand-ink)]">Paste CSV rows</p>
-                    <p className="text-sm text-[var(--brand-muted-ink)]">Columns: recipient_name, wallet_address, amount</p>
+                    <p className="text-sm font-semibold text-[var(--brand-ink)]">CSV roster</p>
+                    <p className="text-sm text-[var(--brand-muted-ink)]">Required columns: recipient_name, wallet_address, amount</p>
                   </div>
-                  <Button variant="secondary" size="sm" onClick={() => setCsvDraft(CSV_SAMPLE)}>
-                    Load sample
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => setCsvDraft(CSV_SAMPLE)}>
+                      Load sample
+                    </Button>
+                    <Button size="sm" onClick={loadCsvIntoTable}>
+                      Validate roster
+                    </Button>
+                  </div>
                 </div>
                 <Textarea
                   value={csvDraft}
                   onChange={(event) => setCsvDraft(event.target.value)}
-                  className="min-h-36 font-mono-ui text-xs leading-6"
+                  className="min-h-40 font-mono-ui text-xs leading-6"
                 />
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs text-[var(--brand-muted-ink)]">Paste → validate → load.</p>
-                  <Button onClick={loadCsvIntoTable}>Use these rows</Button>
-                </div>
                 {csvError ? <p className="text-sm text-red-700">{csvError}</p> : null}
               </div>
             ) : null}
@@ -1005,7 +1236,12 @@ export function PayoutRunWorkspace({
                 </div>
 
                 <div className="grid gap-3 lg:min-w-[360px]">
-                  <ExecutionStatusBox activePhase={activePhase} submitState={submitState} proofProgress={proofProgress} />
+                  <ExecutionStatusBox
+                    activePhase={activePhase}
+                    submitState={submitState}
+                    proofProgress={proofProgress}
+                    bulkProgress={bulkProgress}
+                  />
                   <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                     <Button variant="secondary" onClick={resetRun}>
                       {entryMode === "manual" ? "Clear" : "Start fresh"}

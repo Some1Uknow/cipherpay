@@ -15,12 +15,12 @@ Create `web/.env.local` from `.env.example`. Required local values include:
 - `DATABASE_URL`
 - `SESSION_SIGNING_SECRET`
 - `INVOICE_ENCRYPTION_KEY`
-- MagicBlock private payout config from `.env.example`
+- Cloak private payout config from `.env.example`
 
-Apply the MagicBlock Phase 2 migration:
+Apply the Cloak private payout migration:
 
 ```bash
-pnpm db:migrate:magicblock
+pnpm db:migrate:cloak
 ```
 
 The migration is idempotent and records applied files in `schema_migrations`.
@@ -51,15 +51,12 @@ npx jest
 The default payout rail is:
 
 ```text
-NEXT_PUBLIC_PAYOUT_RAIL=magicblock_private_spl
+NEXT_PUBLIC_PAYOUT_RAIL=cloak
+NEXT_PUBLIC_CLOAK_PROGRAM_ID=Zc1kHfp4rajSMeASFDwFFgkHRjv7dFQuLheJoQus27h
+NEXT_PUBLIC_CLOAK_RELAY_URL=https://api.devnet.cloak.ag
 NEXT_PUBLIC_PRIVATE_PAYOUT_SYMBOL=SOL
 NEXT_PUBLIC_PRIVATE_PAYOUT_MINT=So11111111111111111111111111111111111111112
 NEXT_PUBLIC_PRIVATE_PAYOUT_DECIMALS=9
 ```
 
-The browser never signs server-side. The Next API routes proxy MagicBlock transaction-builder requests, validate them against the authenticated wallet and saved payout run, then return unsigned transactions for the connected wallet to sign.
-
-Use `sendTo` from the MagicBlock response to choose the connection:
-
-- `base`: Solana base RPC
-- `ephemeral`: MagicBlock ephemeral RPC
+The browser never signs server-side. Cloak execution will be wired in the manual and bulk send phases; payout run APIs persist draft, progress, row status, and receipt metadata.

@@ -123,6 +123,59 @@ const edgeTypes = {
   flow: FlowEdge,
 } as const;
 
+const diagramLogos = {
+  user: (
+    <LogoBadge>
+      <Image src="/logo/diagram/user.svg" alt="User" width={28} height={28} className="h-7 w-7" />
+    </LogoBadge>
+  ),
+  wallet: (
+    <LogoBadge>
+      <Image src="/logo/diagram/phantom.svg" alt="Phantom" width={28} height={28} className="h-7 w-7" />
+    </LogoBadge>
+  ),
+  signin: (
+    <LogoBadge>
+      <Image src="/logo/diagram/key.svg" alt="Sign in" width={28} height={28} className="h-7 w-7" />
+    </LogoBadge>
+  ),
+  run: (
+    <LogoBadge>
+      <Image src="/logo/diagram/clipboard.svg" alt="Payout run" width={28} height={28} className="h-7 w-7" />
+    </LogoBadge>
+  ),
+  state: (
+    <LogoBadge>
+      <Image src="/logo/diagram/postgres.svg" alt="Postgres" width={28} height={28} className="h-7 w-7" />
+    </LogoBadge>
+  ),
+  cloak: (
+    <LogoBadge>
+      <Image src="/logo/diagram/cloak.png" alt="Cloak" width={28} height={28} className="h-7 w-7" />
+    </LogoBadge>
+  ),
+  shieldedSol: (
+    <LogoBadge>
+      <Image src="/logo/diagram/solana-logo-mark.svg" alt="Solana" width={32} height={28} className="h-6 w-auto" />
+    </LogoBadge>
+  ),
+  transfer: (
+    <LogoBadge>
+      <Image src="/logo/diagram/transfer.svg" alt="Transfer" width={28} height={28} className="h-7 w-7" />
+    </LogoBadge>
+  ),
+  receiver: (
+    <LogoBadge>
+      <Image src="/logo/diagram/receiver.svg" alt="Receiver" width={28} height={28} className="h-7 w-7" />
+    </LogoBadge>
+  ),
+  receipts: (
+    <LogoBadge>
+      <Image src="/logo/diagram/receipt.svg" alt="Receipts" width={28} height={28} className="h-7 w-7" />
+    </LogoBadge>
+  ),
+} as const;
+
 const desktopNodes: Node<ArchitectureNodeData>[] = [
   {
     id: "user",
@@ -132,7 +185,7 @@ const desktopNodes: Node<ArchitectureNodeData>[] = [
       title: "User",
       body: "Starts the flow.",
       tone: "amber",
-      logo: <LogoBadge className="text-[11px] font-semibold text-[#73500b]">OP</LogoBadge>,
+      logo: diagramLogos.user,
     },
     draggable: false,
     selectable: false,
@@ -146,7 +199,7 @@ const desktopNodes: Node<ArchitectureNodeData>[] = [
       title: "Wallet",
       body: "Signs auth and transactions.",
       tone: "amber",
-      logo: <LogoBadge className="text-[11px] font-semibold text-[#73500b]">W</LogoBadge>,
+      logo: diagramLogos.wallet,
     },
     draggable: false,
     selectable: false,
@@ -161,11 +214,7 @@ const desktopNodes: Node<ArchitectureNodeData>[] = [
       title: "Sign in",
       body: "Verifies wallet ownership.",
       tone: "blue",
-      logo: (
-        <LogoBadge>
-          <Image src="/logo/cipherpay_logo.png" alt="CipherPay" width={30} height={30} className="h-8 w-8 rounded-full" />
-        </LogoBadge>
-      ),
+      logo: diagramLogos.signin,
     },
     draggable: false,
     selectable: false,
@@ -180,6 +229,7 @@ const desktopNodes: Node<ArchitectureNodeData>[] = [
       title: "Run",
       body: "Creates the payout run.",
       tone: "blue",
+      logo: diagramLogos.run,
     },
     draggable: false,
     selectable: false,
@@ -194,6 +244,7 @@ const desktopNodes: Node<ArchitectureNodeData>[] = [
       title: "State",
       body: "Stores progress and rows.",
       tone: "violet",
+      logo: diagramLogos.state,
     },
     draggable: false,
     selectable: false,
@@ -201,14 +252,14 @@ const desktopNodes: Node<ArchitectureNodeData>[] = [
     sourcePosition: Position.Right,
   },
   {
-    id: "magicblock",
+    id: "cloak",
     type: "architecture",
     position: { x: 700, y: 58 },
     data: {
-      title: "MagicBlock",
-      body: "Builds the payout transactions.",
+      title: "Cloak",
+      body: "Coordinates shielded payouts.",
       tone: "green",
-      logo: <LogoBadge className="text-[11px] font-semibold text-[#176246]">MB</LogoBadge>,
+      logo: diagramLogos.cloak,
     },
     draggable: false,
     selectable: false,
@@ -220,9 +271,10 @@ const desktopNodes: Node<ArchitectureNodeData>[] = [
     type: "architecture",
     position: { x: 700, y: 206 },
     data: {
-      title: "wSOL",
-      body: "Wraps only what is needed.",
+      title: "Shielded SOL",
+      body: "Holds shielded SOL notes.",
       tone: "green",
+      logo: diagramLogos.shieldedSol,
     },
     draggable: false,
     selectable: false,
@@ -237,11 +289,7 @@ const desktopNodes: Node<ArchitectureNodeData>[] = [
       title: "Private transfer",
       body: "Deposits and settles privately.",
       tone: "green",
-      logo: (
-        <LogoBadge>
-          <Image src="/solanaLogo.svg" alt="Solana" width={42} height={24} className="h-5 w-auto" />
-        </LogoBadge>
-      ),
+      logo: diagramLogos.transfer,
     },
     draggable: false,
     selectable: false,
@@ -256,6 +304,7 @@ const desktopNodes: Node<ArchitectureNodeData>[] = [
       title: "Receiver",
       body: "Gets paid.",
       tone: "amber",
+      logo: diagramLogos.receiver,
     },
     draggable: false,
     selectable: false,
@@ -264,11 +313,12 @@ const desktopNodes: Node<ArchitectureNodeData>[] = [
   {
     id: "receipts",
     type: "architecture",
-    position: { x: 544, y: 450 },
+    position: { x: 544, y: 436 },
     data: {
       title: "Receipts",
       body: "Tracks signatures and status.",
       tone: "violet",
+      logo: diagramLogos.receipts,
     },
     draggable: false,
     selectable: false,
@@ -318,9 +368,9 @@ const desktopEdges: Edge<{ tone: "primary" | "settle" | "evidence"; particle?: b
     targetHandle: "t",
   },
   {
-    id: "state-magicblock",
+    id: "state-cloak",
     source: "state",
-    target: "magicblock",
+    target: "cloak",
     type: "flow",
     data: { tone: "settle", particle: true },
     markerEnd: { type: MarkerType.ArrowClosed, color: edgeColors.settle, width: 12, height: 12 },
@@ -328,8 +378,8 @@ const desktopEdges: Edge<{ tone: "primary" | "settle" | "evidence"; particle?: b
     targetHandle: "l",
   },
   {
-    id: "magicblock-wsol",
-    source: "magicblock",
+    id: "cloak-wsol",
+    source: "cloak",
     target: "wsol",
     type: "flow",
     data: { tone: "settle" },
@@ -368,8 +418,8 @@ const desktopEdges: Edge<{ tone: "primary" | "settle" | "evidence"; particle?: b
     targetHandle: "l",
   },
   {
-    id: "magicblock-receipts",
-    source: "magicblock",
+    id: "cloak-receipts",
+    source: "cloak",
     target: "receipts",
     type: "flow",
     data: { tone: "evidence" },
@@ -398,7 +448,7 @@ const mobileNodes: Node<ArchitectureNodeData>[] = [
       title: "User",
       body: "Starts the flow.",
       tone: "amber",
-      logo: <LogoBadge className="text-[11px] font-semibold text-[#73500b]">OP</LogoBadge>,
+      logo: diagramLogos.user,
     },
     draggable: false,
     selectable: false,
@@ -412,7 +462,7 @@ const mobileNodes: Node<ArchitectureNodeData>[] = [
       title: "Wallet",
       body: "Signs auth and transactions.",
       tone: "amber",
-      logo: <LogoBadge className="text-[11px] font-semibold text-[#73500b]">W</LogoBadge>,
+      logo: diagramLogos.wallet,
     },
     draggable: false,
     selectable: false,
@@ -427,11 +477,7 @@ const mobileNodes: Node<ArchitectureNodeData>[] = [
       title: "Run",
       body: "Signs in and creates the payout run.",
       tone: "blue",
-      logo: (
-        <LogoBadge>
-          <Image src="/logo/cipherpay_logo.png" alt="CipherPay" width={30} height={30} className="h-8 w-8 rounded-full" />
-        </LogoBadge>
-      ),
+      logo: diagramLogos.run,
     },
     draggable: false,
     selectable: false,
@@ -439,14 +485,14 @@ const mobileNodes: Node<ArchitectureNodeData>[] = [
     sourcePosition: Position.Bottom,
   },
   {
-    id: "m-magicblock",
+    id: "m-cloak",
     type: "architecture",
     position: { x: 20, y: 392 },
     data: {
-      title: "MagicBlock",
-      body: "Builds the payout transactions.",
+      title: "Cloak",
+      body: "Coordinates shielded payouts.",
       tone: "green",
-      logo: <LogoBadge className="text-[11px] font-semibold text-[#176246]">MB</LogoBadge>,
+      logo: diagramLogos.cloak,
     },
     draggable: false,
     selectable: false,
@@ -459,13 +505,9 @@ const mobileNodes: Node<ArchitectureNodeData>[] = [
     position: { x: 20, y: 526 },
     data: {
       title: "Private transfer",
-      body: "Wraps, deposits, and settles privately.",
+      body: "Deposits and settles privately.",
       tone: "green",
-      logo: (
-        <LogoBadge>
-          <Image src="/solanaLogo.svg" alt="Solana" width={42} height={24} className="h-5 w-auto" />
-        </LogoBadge>
-      ),
+      logo: diagramLogos.transfer,
     },
     draggable: false,
     selectable: false,
@@ -480,6 +522,7 @@ const mobileNodes: Node<ArchitectureNodeData>[] = [
       title: "Receipts",
       body: "Tracks signatures and status.",
       tone: "violet",
+      logo: diagramLogos.receipts,
     },
     draggable: false,
     selectable: false,
@@ -505,16 +548,16 @@ const mobileEdges: Edge<{ tone: "primary" | "settle" | "evidence"; particle?: bo
     markerEnd: { type: MarkerType.ArrowClosed, color: edgeColors.primary, width: 14, height: 14 },
   },
   {
-    id: "m-run-magicblock",
+    id: "m-run-cloak",
     source: "m-run",
-    target: "m-magicblock",
+    target: "m-cloak",
     type: "flow",
     data: { tone: "settle", particle: true },
     markerEnd: { type: MarkerType.ArrowClosed, color: edgeColors.settle, width: 14, height: 14 },
   },
   {
-    id: "m-magicblock-transfer",
-    source: "m-magicblock",
+    id: "m-cloak-transfer",
+    source: "m-cloak",
     target: "m-transfer",
     type: "flow",
     data: { tone: "settle", particle: true },
@@ -581,12 +624,12 @@ export function CipherPayArchitectureDiagram() {
             <div className="absolute left-5 top-5 h-[404px] w-[238px] rounded-[28px] bg-[rgba(248,250,252,0.68)] shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_36px_rgba(148,163,184,0.08)]" />
             <div className="absolute left-[276px] top-5 h-[404px] w-[308px] rounded-[28px] bg-[rgba(248,250,252,0.70)] shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_36px_rgba(148,163,184,0.08)]" />
             <div className="absolute left-[620px] top-5 h-[404px] w-[540px] rounded-[28px] bg-[rgba(248,250,252,0.70)] shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_36px_rgba(148,163,184,0.08)]" />
-            <div className="absolute left-[276px] top-[442px] h-[82px] w-[884px] rounded-[24px] bg-[rgba(248,250,252,0.70)] shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_16px_28px_rgba(148,163,184,0.08)]" />
+            <div className="absolute left-[276px] top-[428px] h-[96px] w-[884px] rounded-[24px] bg-[rgba(248,250,252,0.70)] shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_16px_28px_rgba(148,163,184,0.08)]" />
 
             <div className="absolute left-[108px] top-[24px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">Operator</div>
             <div className="absolute left-[300px] top-[24px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">CipherPay control plane</div>
             <div className="absolute left-[694px] top-[24px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">Private settlement rail</div>
-            <div className="absolute left-[300px] top-[458px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">Evidence loop</div>
+            <div className="absolute left-[300px] top-[444px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">Evidence loop</div>
           </FlowBoard>
         </div>
       </div>

@@ -37,6 +37,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "rows must be an array." }, { status: 400 });
   }
 
+  if (body.entryMode === "manual" && body.rows.length > 1) {
+    return NextResponse.json({ error: "manual runs can only contain one recipient." }, { status: 400 });
+  }
+
   const rows: PayoutRowDraft[] = body.rows.map((row) => ({
     id: row.id ?? crypto.randomUUID(),
     recipientName: typeof row.recipientName === "string" ? row.recipientName : "",

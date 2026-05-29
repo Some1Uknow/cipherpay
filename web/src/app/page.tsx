@@ -14,24 +14,24 @@ type LandingPageProps = {
 
 const featureCards = [
   {
-    title: "Create",
-    body: "Draft invoices or payout rows via form or CSV, with inline validation before anything moves.",
+    title: "Start a payout",
+    body: "Add people or invoices by hand or by file, then check everything before you send it.",
   },
   {
-    title: "Approve",
-    body: "Review totals + exceptions and lock intent (who, what, how much) before settlement.",
+    title: "Review and confirm",
+    body: "Look over the amount, the recipients, and any issues before you approve it.",
   },
   {
-    title: "Reconcile",
-    body: "Attach outcomes (tx id + confirmations) back to rows so ops can audit without guesswork.",
+    title: "Keep a record",
+    body: "See what was sent, what finished, and what still needs attention.",
   },
 ] as const;
 
 const stats = [
-  { k: "Row-level validation", v: "Built-in" },
-  { k: "Run totals", v: "Deterministic" },
-  { k: "Receipts", v: "Planned" },
-  { k: "Execution", v: "Next layer" },
+  { k: "Checks before send", v: "Included" },
+  { k: "Totals", v: "Always visible" },
+  { k: "Proof of payment", v: "On the way" },
+  { k: "Sending", v: "Step by step" },
 ] as const;
 
 export default async function LandingPage({ searchParams }: LandingPageProps) {
@@ -70,10 +70,10 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
           <div className="flex flex-1 flex-col items-center justify-center pb-12 pt-12">
             <div className="w-full max-w-3xl text-center">
               <h1 className="font-display text-[3.05rem] leading-[0.98] tracking-[-0.06em] sm:text-[4.05rem] lg:text-[4.8rem]">
-                On-chain private invoicing infrastructure
+                Private payouts, without the usual overhead
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-[var(--brand-muted-ink)] sm:text-xl">
-                Create payout runs, pay on devnet, and keep outcomes easy to reconcile with wallet-based sign-in and receipts you can audit.
+                Build a payout in a few simple steps, review it with your team, and keep a clear record of what was sent.
               </p>
 
               <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
@@ -108,14 +108,14 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
       </section>
 
       <section id="architecture" className="relative border-t border-[rgba(148,163,184,0.16)]">
-        <div className="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-10 lg:py-16">
+        <div className="mx-auto max-w-[88rem] px-6 py-14 sm:px-8 lg:px-10 lg:py-16">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">End-to-end architecture</p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">How it works</p>
             <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">
-              One diagram for the entire payout path.
+              Everything you need in one place.
             </h2>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
-              Wallet auth, payout run persistence, MagicBlock transaction building, wSOL deposit, private transfer settlement, and row-level evidence all in one view.
+              From setup to sending to follow-up, keep the whole payout process easy to understand.
             </p>
           </div>
 
@@ -126,8 +126,8 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
           <div className="mt-6 grid gap-3 lg:grid-cols-3">
             {[
               ["Control plane", "Browser, Next.js routes, API validation, and Postgres state stay on the review side."],
-              ["Settlement rail", "SOL is wrapped to wSOL only when needed, then deposits and private transfers follow MagicBlock sendTo routing."],
-              ["Evidence", "Deposit signatures, row transfer signatures, validator metadata, and retry state flow back into history."],
+              ["Settlement rail", "SOL deposits into Cloak, then manual pay uses one withdrawal while bulk pay chains row withdrawals through change UTXOs."],
+              ["Evidence", "Deposit signatures, row withdraw signatures, recovery state, and retry state flow back into history."],
             ].map(([k, v]) => (
               <div key={k} className="rounded-[24px] bg-[var(--brand-surface)] p-4 shadow-neoInsetSm">
                 <p className="text-sm font-semibold text-[var(--brand-ink)]">{k}</p>
@@ -143,10 +143,10 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
         <div className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col justify-center px-6 py-16 sm:px-8 lg:px-10">
           <Card className="p-8 sm:p-10">
             <div className="max-w-3xl">
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">What matters</p>
-              <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">Less UI. More certainty.</h2>
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">What you get</p>
+              <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">Clear steps. Fewer mistakes.</h2>
               <p className="mt-5 text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
-                User-facing clarity, with just enough technical specificity to feel credible.
+                A simple flow that helps people move from draft to done without second-guessing the details.
               </p>
             </div>
 
@@ -167,9 +167,9 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
         <div className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col justify-center px-6 py-16 sm:px-8 lg:px-10">
           <div className="max-w-2xl">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Workflow</p>
-            <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">Three states. No extra screens.</h2>
+            <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">A simple path from draft to send.</h2>
             <p className="mt-5 text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
-              Compose → review → execute. Keep the operator loop tight.
+              Draft it, check it, and send it when you’re ready.
             </p>
           </div>
 
@@ -198,10 +198,10 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
           <Card className="p-8 sm:p-10">
             <div className="grid items-center gap-8 lg:grid-cols-[1.2fr_0.8fr]">
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Phase 1</p>
-                <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">Open the workspace and build a run.</h2>
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Next step</p>
+                <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">Open the workspace and get started.</h2>
                 <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
-                  The goal is boring correctness: fewer mistakes, clearer outcomes.
+                  Keep the process straightforward so your team can move faster with less back-and-forth.
                 </p>
               </div>
 

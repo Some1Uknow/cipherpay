@@ -6,17 +6,22 @@ import type { PayoutRowStatus, PayoutRunStatus } from "@/lib/payout-runs/types";
 
 type UpdateRunStatusBody = {
   status?: PayoutRunStatus;
-  magicblockDepositSignature?: string | null;
-  magicblockDepositSendTo?: "base" | "ephemeral" | null;
-  magicblockPrivateStatus?: string | null;
+  privateDepositSignature?: string | null;
+  privateStatus?: string | null;
+  totalFeeBaseUnits?: string | null;
+  totalNetBaseUnits?: string | null;
+  currentChangeUtxoCommitment?: string | null;
+  recoveryState?: string | null;
   privateBalanceBefore?: string | null;
   privateBalanceAfter?: string | null;
   rows?: Array<{
     id?: string;
     rowStatus?: PayoutRowStatus;
     txSignature?: string | null;
-    magicblockTransferSignature?: string | null;
-    magicblockTransferSendTo?: "base" | "ephemeral" | null;
+    privateWithdrawSignature?: string | null;
+    grossBaseUnits?: string | null;
+    feeBaseUnits?: string | null;
+    netBaseUnits?: string | null;
     privateStatus?: string | null;
     errorMessage?: string | null;
   }>;
@@ -45,9 +50,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ runId
     runId,
     userId: session.userId,
     status: body.status,
-    magicblockDepositSignature: body.magicblockDepositSignature,
-    magicblockDepositSendTo: body.magicblockDepositSendTo,
-    magicblockPrivateStatus: body.magicblockPrivateStatus,
+    privateDepositSignature: body.privateDepositSignature,
+    privateStatus: body.privateStatus,
+    totalFeeBaseUnits: body.totalFeeBaseUnits,
+    totalNetBaseUnits: body.totalNetBaseUnits,
+    currentChangeUtxoCommitment: body.currentChangeUtxoCommitment,
+    recoveryState: body.recoveryState,
     privateBalanceBefore: body.privateBalanceBefore,
     privateBalanceAfter: body.privateBalanceAfter,
     rows: Array.isArray(body.rows)
@@ -59,8 +67,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ runId
               id: string;
               rowStatus: PayoutRowStatus;
               txSignature?: string | null;
-              magicblockTransferSignature?: string | null;
-              magicblockTransferSendTo?: "base" | "ephemeral" | null;
+              privateWithdrawSignature?: string | null;
+              grossBaseUnits?: string | null;
+              feeBaseUnits?: string | null;
+              netBaseUnits?: string | null;
               privateStatus?: string | null;
               errorMessage?: string | null;
             } => Boolean(row.id && row.rowStatus),

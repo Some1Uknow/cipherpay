@@ -5,17 +5,17 @@ import { getLatestOpenPayoutRunForUser } from "@/lib/payout-runs/store";
 
 export default async function PayPage() {
   const session = await requireSession("/pay");
-  const initialRun = await getLatestOpenPayoutRunForUser(session.userId);
+  const initialRun = await getLatestOpenPayoutRunForUser(session.userId, "manual");
 
   return (
     <>
       <PageHeader
         eyebrow="Pay"
-        title="Prepare payouts"
-        description="Draft rows, review totals, and export a clean run."
-        badge="Workspace"
+        title="Send one payout"
+        description="A simple single-recipient flow for quick private payments."
+        badge="Manual"
       />
-      <PayoutRunWorkspace walletAddress={session.walletAddress} initialRun={initialRun} />
+      <PayoutRunWorkspace walletAddress={session.walletAddress} initialRun={initialRun} entryMode="manual" />
     </>
   );
 }

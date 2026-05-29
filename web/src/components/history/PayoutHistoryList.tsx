@@ -40,22 +40,32 @@ function shorten(value: string, edge = 5) {
   return `${value.slice(0, edge)}...${value.slice(-edge)}`;
 }
 
+function recipientCountLabel(count: number) {
+  return `${count} ${count === 1 ? "recipient" : "recipients"}`;
+}
+
 function rowStatusTone(status: PayoutRowDraft["rowStatus"]) {
-  if (status === "confirmed" || status === "paid_private") return "green";
+  if (status === "paid_private") return "green";
   if (status === "failed") return "amber";
-  if (status === "submitted" || status === "queued") return "blue";
+  if (status === "paying" || status === "queued") return "blue";
   return "slate";
 }
 
+function entryModeLabel(entryMode: PersistedPayoutRun["entryMode"]) {
+  return entryMode === "manual" ? "Manual pay" : "Bulk pay";
+}
+
 function runTitle(run: PersistedPayoutRun) {
-  if (run.status === "completed") return "Completed payout run";
-  if (run.status === "partially_paid") return "Partially paid private run";
-  if (run.status === "failed") return "Failed payout run";
-  if (run.status === "transferring") return "Private transfers in progress";
-  if (run.status === "depositing" || run.status === "deposit_required" || run.status === "deposit_confirmed") return "Private deposit run";
-  if (run.status === "submitted" || run.status === "submitting") return "Submitted payout run";
-  if (run.status === "ready") return "Ready payout run";
-  return "Draft payout run";
+  const label = entryModeLabel(run.entryMode);
+
+  if (run.status === "completed") return `${label} completed`;
+  if (run.status === "partially_paid") return `${label} partially paid`;
+  if (run.status === "failed") return `${label} failed`;
+  if (run.status === "recoverable") return `${label} needs recovery`;
+  if (run.status === "paying") return `${label} in progress`;
+  if (run.status === "depositing" || run.status === "deposit_confirmed") return `${label} preparing deposit`;
+  if (run.status === "ready") return `${label} ready`;
+  return `${label} draft`;
 }
 
 function countRows(run: PersistedPayoutRun, status: PayoutRowDraft["rowStatus"]) {
@@ -69,11 +79,10 @@ function RunDetailModal({
   run: PersistedPayoutRun;
   onClose: () => void;
 }) {
-  const confirmedCount = countRows(run, "confirmed");
   const paidPrivateCount = countRows(run, "paid_private");
   const failedCount = countRows(run, "failed");
-  const pendingCount = run.rows.filter((row) => row.rowStatus !== "confirmed" && row.rowStatus !== "paid_private" && row.rowStatus !== "failed").length;
-  const uniquePrivateTxs = Array.from(new Set(run.rows.map((row) => row.magicblockTransferSignature ?? row.txSignature).filter(Boolean))) as string[];
+  const pendingCount = run.rows.filter((row) => row.rowStatus !== "paid_private" && row.rowStatus !== "failed").length;
+  const uniquePrivateTxs = Array.from(new Set(run.rows.map((row) => row.privateWithdrawSignature ?? row.txSignature).filter(Boolean))) as string[];
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(15,23,42,0.34)] px-4 py-5 backdrop-blur-[10px] sm:px-6 sm:py-7" role="dialog" aria-modal="true">
@@ -87,7 +96,7 @@ function RunDetailModal({
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-muted-ink)]">Run details</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-[-0.045em] text-[var(--brand-ink-deep)]">{runTitle(run)}</h2>
             <p className="mt-1 text-sm text-[var(--brand-muted-ink)]">
-              {run.itemCount} recipients · {run.totalAmount} {run.assetSymbol} · Last updated {formatDate(run.lastInteractedAt)}
+              {recipientCountLabel(run.itemCount)} · {run.totalAmount} {run.assetSymbol} · Last updated {formatDate(run.lastInteractedAt)}
             </p>
           </div>
           <Button variant="secondary" size="sm" onClick={onClose}>
@@ -99,9 +108,9 @@ function RunDetailModal({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               ["Funding wallet", shorten(run.walletAddress, 6)],
-              ["Rail", run.payoutRail === "magicblock_private_spl" ? "Private" : run.payoutRail],
+              ["Rail", run.payoutRail === "cloak" ? "Cloak private pool" : run.payoutRail],
               ["Asset", run.assetSymbol],
-              ["Entry mode", run.entryMode.toUpperCase()],
+              ["Pay mode", entryModeLabel(run.entryMode)],
               ["Submitted", formatDate(run.submittedAt)],
             ].map(([label, value]) => (
               <div key={label} className="rounded-[22px] bg-[var(--brand-surface)] p-4 shadow-neoInsetSm">
@@ -113,7 +122,7 @@ function RunDetailModal({
 
           <div className="mt-4 grid gap-3 sm:grid-cols-4">
             {[
-              ["Paid privately", paidPrivateCount || confirmedCount, "text-emerald-700"],
+              ["Paid privately", paidPrivateCount, "text-emerald-700"],
               ["Failed", failedCount, "text-red-700"],
               ["Pending", pendingCount, "text-slate-600"],
               ["Transfer txs", uniquePrivateTxs.length, "text-[var(--brand-blue)]"],
@@ -130,30 +139,26 @@ function RunDetailModal({
               <p className="text-sm font-semibold text-[var(--brand-ink)]">Private rail</p>
               <div className="mt-3 grid gap-2 text-xs text-[var(--brand-muted-ink)]">
                 <p>Internal mint: <span className="break-all font-mono text-[var(--brand-ink)]">{run.assetMint ?? "Not recorded"}</span></p>
-                <p>MagicBlock validator: <span className="break-all font-mono text-[var(--brand-ink)]">{run.magicblockValidator ?? "Not recorded"}</span></p>
-                <p>Status: <span className="font-semibold text-[var(--brand-ink)]">{run.magicblockPrivateStatus ?? run.status}</span></p>
+                <p>Cloak program: <span className="break-all font-mono text-[var(--brand-ink)]">{run.cloakProgramId ?? "Not recorded"}</span></p>
+                <p>Relay: <span className="break-all font-mono text-[var(--brand-ink)]">{run.cloakRelayUrl ?? "Not recorded"}</span></p>
+                <p>Status: <span className="font-semibold text-[var(--brand-ink)]">{run.privateStatus ?? run.status}</span></p>
               </div>
             </div>
 
             <div className="rounded-[26px] bg-[var(--brand-surface)] p-4 shadow-neoInsetSm">
               <p className="text-sm font-semibold text-[var(--brand-ink)]">Deposit transaction</p>
-              {run.magicblockDepositSignature ? (
-                run.magicblockDepositSendTo === "base" ? (
-                  <a
-                    className="mt-3 block break-all font-mono text-xs font-semibold text-[var(--brand-blue)] hover:text-[var(--brand-blue-strong)]"
-                    href={explorerTxUrl(run.magicblockDepositSignature)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {run.magicblockDepositSignature}
-                  </a>
-                ) : (
-                  <p className="mt-3 break-all font-mono text-xs font-semibold text-[var(--brand-ink)]">{run.magicblockDepositSignature}</p>
-                )
+              {run.privateDepositSignature ? (
+                <a
+                  className="mt-3 block break-all font-mono text-xs font-semibold text-[var(--brand-blue)] hover:text-[var(--brand-blue-strong)]"
+                  href={explorerTxUrl(run.privateDepositSignature)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {run.privateDepositSignature}
+                </a>
               ) : (
                 <p className="mt-3 text-xs text-[var(--brand-muted-ink)]">No deposit transaction recorded.</p>
               )}
-              <p className="mt-2 text-xs text-[var(--brand-muted-ink)]">sendTo: {run.magicblockDepositSendTo ?? "not recorded"}</p>
             </div>
           </div>
 
@@ -177,7 +182,7 @@ function RunDetailModal({
           <div className="mt-5">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--brand-muted-ink)]">Recipients</p>
-              <p className="text-xs text-[var(--brand-muted-ink)]">Private transfer signatures from the ER are shown as copyable text.</p>
+              <p className="text-xs text-[var(--brand-muted-ink)]">Cloak private withdraw signatures are shown as copyable text.</p>
             </div>
 
             <div className="overflow-hidden rounded-[26px] bg-[var(--brand-surface)] shadow-neoSm">
@@ -209,24 +214,23 @@ function RunDetailModal({
                     </p>
                     <Badge tone={rowStatusTone(row.rowStatus)}>{row.rowStatus === "paid_private" ? "paid_private" : row.rowStatus ?? "draft"}</Badge>
                     <div>
-                      {row.magicblockTransferSignature && row.magicblockTransferSendTo === "base" ? (
+                      {row.privateWithdrawSignature ? (
                         <a
                           className="break-all font-mono text-xs font-semibold text-[var(--brand-blue)] hover:text-[var(--brand-blue-strong)]"
-                          href={explorerTxUrl(row.magicblockTransferSignature)}
+                          href={explorerTxUrl(row.privateWithdrawSignature)}
                           target="_blank"
                           rel="noreferrer"
                         >
-                          {shorten(row.magicblockTransferSignature, 8)}
+                          {shorten(row.privateWithdrawSignature, 8)}
                         </a>
-                      ) : row.magicblockTransferSignature ?? row.txSignature ? (
+                      ) : row.txSignature ? (
                         <p className="break-all font-mono text-xs font-semibold text-[var(--brand-ink)]">
-                          {row.magicblockTransferSignature ?? row.txSignature}
+                          {row.txSignature}
                         </p>
                       ) : (
                         <span className="text-xs text-[var(--brand-muted-ink)]">No private transfer tx yet</span>
                       )}
                       {row.clientRefId ? <p className="mt-1 text-xs text-[var(--brand-muted-ink)]">Ref {row.clientRefId}</p> : null}
-                      {row.magicblockTransferSendTo ? <p className="mt-1 text-xs text-[var(--brand-muted-ink)]">sendTo {row.magicblockTransferSendTo}</p> : null}
                       {row.errorMessage ? <p className="mt-1 text-xs text-red-700">{row.errorMessage}</p> : null}
                     </div>
                   </div>
@@ -264,8 +268,8 @@ export function PayoutHistoryList({ runs }: PayoutHistoryListProps) {
     return (
       <EmptyStateCard
         title="No payout runs yet"
-        description="Drafts you create in /pay show up here automatically."
-        actionLabel="Start a payout run"
+        description="Manual and bulk payout drafts appear here automatically."
+        actionLabel="Start a payment"
         actionHref="/pay"
       />
     );
@@ -281,13 +285,14 @@ export function PayoutHistoryList({ runs }: PayoutHistoryListProps) {
                 <div>
                   <p className="text-base font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">{runTitle(run)}</p>
                   <p className="mt-1 text-sm text-[var(--brand-muted-ink)]">
-                    {formatDate(run.lastInteractedAt)} · {run.itemCount} rows · {countRows(run, "paid_private") || countRows(run, "confirmed")} paid
+                    {formatDate(run.lastInteractedAt)} · {recipientCountLabel(run.itemCount)} · {countRows(run, "paid_private")} paid
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 text-left sm:items-end">
                   <p className="text-sm font-medium text-[var(--brand-ink)]">
                     {run.totalAmount} {run.assetSymbol}
                   </p>
+                  <Badge tone="blue">{entryModeLabel(run.entryMode)}</Badge>
                   <Badge tone={run.status === "completed" ? "green" : run.status === "failed" ? "amber" : "slate"}>{run.status}</Badge>
                 </div>
               </CardContent>

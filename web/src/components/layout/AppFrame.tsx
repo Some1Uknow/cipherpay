@@ -14,6 +14,7 @@ const WORKSPACE_PATHS = [
   "/reports",
   "/settings",
   "/pay",
+  "/bulk-pay",
   "/history",
 ];
 

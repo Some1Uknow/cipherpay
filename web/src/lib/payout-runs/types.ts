@@ -3,24 +3,21 @@ export type PayoutRunEntryMode = "manual" | "csv";
 export type PayoutRunStatus =
   | "draft"
   | "ready"
-  | "deposit_required"
   | "depositing"
   | "deposit_confirmed"
-  | "transferring"
+  | "paying"
   | "partially_paid"
-  | "submitting"
-  | "submitted"
   | "failed"
-  | "completed";
+  | "completed"
+  | "recoverable";
 
-export type PayoutRowStatus = "draft" | "ready" | "queued" | "paid_private" | "submitted" | "confirmed" | "failed";
+export type PayoutRowStatus = "draft" | "ready" | "queued" | "paying" | "paid_private" | "failed";
 
 export type PrivatePayoutAsset = {
   symbol: "SOL" | "USDC";
   mint: string;
   decimals: number;
   displayName: string;
-  fundingBehavior: "wrap_native_sol" | "spl_token";
 };
 
 export type PayoutRowDraft = {
@@ -32,11 +29,11 @@ export type PayoutRowDraft = {
   rowStatus?: PayoutRowStatus;
   txSignature?: string | null;
   clientRefId?: string | null;
-  magicblockTransferSignature?: string | null;
-  magicblockTransferSendTo?: "base" | "ephemeral" | null;
-  privateTransferSplit?: number;
-  privateTransferMinDelayMs?: number;
-  privateTransferMaxDelayMs?: number;
+  privateWithdrawSignature?: string | null;
+  grossBaseUnits?: string | null;
+  feeBaseUnits?: string | null;
+  netBaseUnits?: string | null;
+  attemptCount?: number;
   privateStatus?: string | null;
   errorMessage?: string | null;
 };
@@ -55,15 +52,20 @@ export type PersistedPayoutRun = {
   entryMode: PayoutRunEntryMode;
   status: PayoutRunStatus;
   totalAmount: string;
-  payoutRail: string;
+  payoutRail: "cloak";
   assetMint: string | null;
   assetSymbol: string;
   assetDecimals: number;
   totalBaseUnits: string | null;
-  magicblockValidator: string | null;
-  magicblockDepositSignature: string | null;
-  magicblockDepositSendTo: "base" | "ephemeral" | null;
-  magicblockPrivateStatus: string | null;
+  privacyCluster: string | null;
+  cloakProgramId: string | null;
+  cloakRelayUrl: string | null;
+  privateDepositSignature: string | null;
+  privateStatus: string | null;
+  totalFeeBaseUnits: string | null;
+  totalNetBaseUnits: string | null;
+  currentChangeUtxoCommitment: string | null;
+  recoveryState: string | null;
   privateBalanceBefore: string | null;
   privateBalanceAfter: string | null;
   itemCount: number;

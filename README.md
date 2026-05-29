@@ -2,7 +2,7 @@
 
 CipherPay is a Solana payout application for private, auditable payment runs.
 
-CipherPay is migrating to Cloak as the default private payout rail. Users fund payouts with SOL, then CipherPay coordinates Cloak shielded-pool deposits and private recipient withdrawals.
+CipherPay is migrating to Cloak as the default private payout rail. Users fund payouts with SOL, then CipherPay coordinates shielded-pool deposits and private recipient withdrawals.
 
 ## Current Architecture
 

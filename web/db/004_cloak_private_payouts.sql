@@ -27,20 +27,63 @@ alter table payout_run_items
   add column if not exists attempt_count integer not null default 0,
   add column if not exists last_attempt_at timestamptz;
 
+alter table payout_runs
+  drop constraint if exists payout_runs_status_check;
+
+alter table payout_run_items
+  drop constraint if exists payout_run_items_row_status_check;
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'payout_runs' and column_name = 'magicblock_deposit_signature'
+  ) then
+    execute 'update payout_runs set private_deposit_signature = coalesce(private_deposit_signature, magicblock_deposit_signature)';
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'payout_runs' and column_name = 'magicblock_private_status'
+  ) then
+    execute 'update payout_runs set private_status = coalesce(private_status, magicblock_private_status)';
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'payout_run_items' and column_name = 'magicblock_transfer_signature'
+  ) then
+    execute 'update payout_run_items set private_withdraw_signature = coalesce(private_withdraw_signature, magicblock_transfer_signature)';
+  end if;
+end $$;
+
 update payout_runs
 set payout_rail = 'cloak'
 where payout_rail <> 'cloak';
+
+update payout_runs
+set status = case
+  when status = 'deposit_required' then 'depositing'
+  when status in ('transferring', 'submitting', 'submitted') then 'paying'
+  else status
+end
+where status in ('deposit_required', 'transferring', 'submitting', 'submitted');
 
 update payout_run_items
 set gross_base_units = coalesce(gross_base_units, amount_base_units),
     private_status = coalesce(private_status, row_status)
 where amount_base_units is not null;
 
-alter table payout_runs
-  alter column payout_rail set default 'cloak';
+update payout_run_items
+set row_status = case
+  when row_status = 'confirmed' then 'paid_private'
+  when row_status = 'submitted' then 'queued'
+  else row_status
+end
+where row_status in ('confirmed', 'submitted');
 
 alter table payout_runs
-  drop constraint if exists payout_runs_status_check;
+  alter column payout_rail set default 'cloak';
 
 alter table payout_runs
   add constraint payout_runs_status_check
@@ -55,9 +98,6 @@ alter table payout_runs
     'failed',
     'recoverable'
   ));
-
-alter table payout_run_items
-  drop constraint if exists payout_run_items_row_status_check;
 
 alter table payout_run_items
   add constraint payout_run_items_row_status_check

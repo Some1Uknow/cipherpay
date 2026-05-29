@@ -1,4 +1,6 @@
-import { FIXED_FEE_LAMPORTS, VARIABLE_FEE_DENOMINATOR, VARIABLE_FEE_NUMERATOR, calculateFeeBigint, isWithdrawAmountSufficient } from "@cloak.dev/sdk";
+export const CLOAK_FIXED_FEE_LAMPORTS = BigInt(5_000_000);
+export const CLOAK_VARIABLE_FEE_NUMERATOR = BigInt(3);
+export const CLOAK_VARIABLE_FEE_DENOMINATOR = BigInt(1000);
 
 export type CloakSolWithdrawalQuote = {
   grossLamports: bigint;
@@ -10,9 +12,9 @@ export type CloakSolWithdrawalQuote = {
 };
 
 export function quoteCloakSolWithdrawal(grossLamports: bigint): CloakSolWithdrawalQuote {
-  const fixedFeeLamports = BigInt(FIXED_FEE_LAMPORTS);
-  const variableFeeLamports = (grossLamports * BigInt(VARIABLE_FEE_NUMERATOR)) / BigInt(VARIABLE_FEE_DENOMINATOR);
-  const totalFeeLamports = calculateFeeBigint(grossLamports);
+  const fixedFeeLamports = CLOAK_FIXED_FEE_LAMPORTS;
+  const variableFeeLamports = (grossLamports * CLOAK_VARIABLE_FEE_NUMERATOR) / CLOAK_VARIABLE_FEE_DENOMINATOR;
+  const totalFeeLamports = fixedFeeLamports + variableFeeLamports;
   const netLamports = grossLamports > totalFeeLamports ? grossLamports - totalFeeLamports : BigInt(0);
 
   return {
@@ -21,7 +23,7 @@ export function quoteCloakSolWithdrawal(grossLamports: bigint): CloakSolWithdraw
     variableFeeLamports,
     totalFeeLamports,
     netLamports,
-    isSufficient: isWithdrawAmountSufficient(grossLamports),
+    isSufficient: grossLamports > totalFeeLamports,
   };
 }
 
@@ -48,4 +50,3 @@ export function quoteCloakSolWithdrawals(grossLamports: bigint[]) {
     },
   );
 }
-

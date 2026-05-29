@@ -1,4 +1,5 @@
 export type PayoutRunEntryMode = "manual" | "csv";
+export type PayoutRail = "cloak";
 
 export type PayoutRunStatus =
   | "draft"
@@ -52,7 +53,7 @@ export type PersistedPayoutRun = {
   entryMode: PayoutRunEntryMode;
   status: PayoutRunStatus;
   totalAmount: string;
-  payoutRail: "cloak";
+  payoutRail: PayoutRail;
   assetMint: string | null;
   assetSymbol: string;
   assetDecimals: number;

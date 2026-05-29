@@ -3,6 +3,7 @@ import "server-only";
 import { getDb } from "@/lib/db";
 import { decimalAmountToBaseUnits, sumBaseUnitAmounts } from "@/lib/cloak/amounts";
 import { getPrivatePayoutAsset } from "@/lib/cloak/config";
+import { quoteCloakSolWithdrawal } from "@/lib/cloak/fees";
 import { publicConfig } from "@/lib/public-config";
 import type { PersistedPayoutRun, PayoutRowDraft, PayoutRowStatus, PayoutRunEntryMode, PayoutRunStatus } from "@/lib/payout-runs/types";
 import { isRowFilled, validateRows } from "@/lib/payout-runs/validation";
@@ -55,6 +56,12 @@ type ItemRow = {
   attempt_count?: number;
   private_status?: string | null;
   error_message?: string | null;
+};
+
+type RowAmountQuote = {
+  amountBaseUnits: bigint;
+  feeBaseUnits: bigint;
+  netBaseUnits: bigint;
 };
 
 function mapRun(run: RunRow, items: ItemRow[]): PersistedPayoutRun {
@@ -115,21 +122,44 @@ function summarizeRows(rows: PayoutRowDraft[]) {
     symbol: asset.symbol,
     decimals: asset.decimals,
   });
-  const validBaseUnits = filledRows.map((row, index) => {
+  const validQuotes = filledRows.map((row, index) => {
     if (Object.keys(issues[index] ?? {}).length > 0) return null;
-    return decimalAmountToBaseUnits(row.amount, asset.decimals);
+    return quoteRowAmount(row.amount, asset.decimals, asset.symbol);
   });
   const total = filledRows.reduce((sum, row, index) => {
     if (Object.keys(issues[index] ?? {}).length > 0) return sum;
     const amount = Number(row.amount);
     return Number.isFinite(amount) ? sum + amount : sum;
   }, 0);
-  const totalBaseUnits = sumBaseUnitAmounts(validBaseUnits.filter((value): value is bigint => value !== null));
+  const quotes = validQuotes.filter((value): value is RowAmountQuote => value !== null);
+  const totalBaseUnits = sumBaseUnitAmounts(quotes.map((quote) => quote.amountBaseUnits));
+  const totalFeeBaseUnits = sumBaseUnitAmounts(quotes.map((quote) => quote.feeBaseUnits));
+  const totalNetBaseUnits = sumBaseUnitAmounts(quotes.map((quote) => quote.netBaseUnits));
 
   const status: PayoutRunStatus =
     filledRows.length > 0 && issues.every((issue) => Object.keys(issue).length === 0) ? "ready" : "draft";
 
-  return { asset, filledRows, total, totalBaseUnits, status };
+  return { asset, filledRows, total, totalBaseUnits, totalFeeBaseUnits, totalNetBaseUnits, status };
+}
+
+function quoteRowAmount(amount: string, decimals: number, symbol: "SOL" | "USDC"): RowAmountQuote {
+  const amountBaseUnits = decimalAmountToBaseUnits(amount, decimals);
+
+  if (symbol === "SOL") {
+    const quote = quoteCloakSolWithdrawal(amountBaseUnits);
+    return {
+      amountBaseUnits,
+      feeBaseUnits: quote.totalFeeLamports,
+      netBaseUnits: quote.netLamports,
+    };
+  }
+
+  // TODO: replace with Cloak SDK SPL fee quote once USDC support is enabled.
+  return {
+    amountBaseUnits,
+    feeBaseUnits: BigInt(0),
+    netBaseUnits: amountBaseUnits,
+  };
 }
 
 function formatStoredAmount(amount: number, decimals: number = publicConfig.phase1TokenDecimals) {
@@ -220,7 +250,7 @@ export async function upsertDraftPayoutRun(params: {
   const db = getDb();
   const client = await db.connect();
 
-  const { asset, filledRows, total, totalBaseUnits, status } = summarizeRows(params.rows);
+  const { asset, filledRows, total, totalBaseUnits, totalFeeBaseUnits, totalNetBaseUnits, status } = summarizeRows(params.rows);
 
   try {
     await client.query("begin");
@@ -245,6 +275,8 @@ export async function upsertDraftPayoutRun(params: {
             privacy_cluster = $13,
             cloak_program_id = $14,
             cloak_relay_url = $15,
+            total_fee_base_units = $16,
+            total_net_base_units = $17,
             updated_at = now(),
             last_interacted_at = now()
           where id = $1
@@ -259,7 +291,7 @@ export async function upsertDraftPayoutRun(params: {
           formatStoredAmount(total, asset.decimals),
           filledRows.length,
           params.userId,
-          publicConfig.payoutRail,
+          "cloak",
           asset.mint,
           asset.symbol,
           asset.decimals,
@@ -267,6 +299,8 @@ export async function upsertDraftPayoutRun(params: {
           publicConfig.solanaCluster,
           publicConfig.cloakProgramId,
           publicConfig.cloakRelayUrl,
+          totalFeeBaseUnits.toString(),
+          totalNetBaseUnits.toString(),
         ],
       );
       run = runResult.rows[0];
@@ -289,9 +323,11 @@ export async function upsertDraftPayoutRun(params: {
             total_base_units,
             privacy_cluster,
             cloak_program_id,
-            cloak_relay_url
+            cloak_relay_url,
+            total_fee_base_units,
+            total_net_base_units
           )
-          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
           returning *
         `,
         [
@@ -301,7 +337,7 @@ export async function upsertDraftPayoutRun(params: {
           status,
           formatStoredAmount(total, asset.decimals),
           filledRows.length,
-          publicConfig.payoutRail,
+          "cloak",
           asset.mint,
           asset.symbol,
           asset.decimals,
@@ -309,6 +345,8 @@ export async function upsertDraftPayoutRun(params: {
           publicConfig.solanaCluster,
           publicConfig.cloakProgramId,
           publicConfig.cloakRelayUrl,
+          totalFeeBaseUnits.toString(),
+          totalNetBaseUnits.toString(),
         ],
       );
       run = runResult.rows[0];
@@ -325,16 +363,17 @@ export async function upsertDraftPayoutRun(params: {
       const bindValues: Array<string | number | null> = [];
 
       params.rows.forEach((row, index) => {
-        const offset = index * 11;
+        const offset = index * 12;
         insertValues.push(
-          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11})`,
+          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12})`,
         );
         const rowIssues = validateRows([row], {
           symbol: asset.symbol,
           decimals: asset.decimals,
         })[0];
         const isReady = Object.keys(rowIssues ?? {}).length === 0;
-        const amountBaseUnits = isReady ? decimalAmountToBaseUnits(row.amount, asset.decimals).toString() : null;
+        const quote = isReady ? quoteRowAmount(row.amount, asset.decimals, asset.symbol) : null;
+        const amountBaseUnits = quote?.amountBaseUnits.toString() ?? null;
         bindValues.push(
           run!.id,
           index,
@@ -343,8 +382,8 @@ export async function upsertDraftPayoutRun(params: {
           row.amount.trim(),
           amountBaseUnits,
           amountBaseUnits,
-          null,
-          null,
+          quote?.feeBaseUnits.toString() ?? null,
+          quote?.netBaseUnits.toString() ?? null,
           Object.keys(rowIssues ?? {}).length === 0 ? "ready" : "draft",
           row.clientRefId && /^\d+$/.test(row.clientRefId) ? row.clientRefId : `${Date.now()}${index.toString().padStart(3, "0")}`,
           isReady ? "ready" : "draft",

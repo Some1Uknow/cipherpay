@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,9 +10,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { formatBaseUnits } from "@/lib/cloak/amounts";
+import { decimalAmountToBaseUnits, formatBaseUnits } from "@/lib/cloak/amounts";
+import type { FastSendPhase } from "@/lib/cloak/fast-send";
 import { getPrivatePayoutAsset, isCloakPrivateRailEnabled } from "@/lib/cloak/config";
-import type { PersistedPayoutRun, PayoutRowDraft, PayoutRunEntryMode } from "@/lib/payout-runs/types";
+import type { PersistedPayoutRun, PayoutRowDraft, PayoutRowStatus, PayoutRunEntryMode, PayoutRunStatus } from "@/lib/payout-runs/types";
 import {
   CSV_SAMPLE,
   createEmptyPayoutRow,
@@ -23,6 +25,21 @@ import {
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 type SubmitState = "idle" | "preparing" | "submitting" | "completed" | "failed";
+
+function labelFastSendPhase(phase: FastSendPhase) {
+  switch (phase) {
+    case "deposit-proof":
+      return "Preparing private deposit";
+    case "deposit-submit":
+      return "Confirming funding transaction";
+    case "withdraw-proof":
+      return "Preparing private transfer";
+    case "withdraw-submit":
+      return "Sending privately";
+    case "success":
+      return "Paid privately";
+  }
+}
 
 export function PayoutRunWorkspace({
   walletAddress,
@@ -52,6 +69,7 @@ export function PayoutRunWorkspace({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitProgress, setSubmitProgress] = useState<string | null>(null);
   const [privateBalance, setPrivateBalance] = useState<string | null>(initialRun?.privateBalanceAfter ?? initialRun?.privateBalanceBefore ?? null);
   const [depositNeeded, setDepositNeeded] = useState<string | null>(null);
   const [paidPrivateCount, setPaidPrivateCount] = useState(() => {
@@ -81,7 +99,8 @@ export function PayoutRunWorkspace({
   }, 0);
   const isReady = filledRows.length > 0 && invalidCount === 0;
   const draftFingerprint = useMemo(() => serializeDraft(mode, rowsToPersist), [mode, rowsToPersist]);
-  const { publicKey, connected } = useWallet();
+  const { connection } = useConnection();
+  const { publicKey, connected, signTransaction, signMessage } = useWallet();
   const payoutConfigured = isCloakPrivateRailEnabled();
 
   function updateRow(id: string, field: keyof Omit<PayoutRowDraft, "id">, value: string) {
@@ -100,12 +119,14 @@ export function PayoutRunWorkspace({
     );
     setSubmitState("idle");
     setSubmitError(null);
+    setSubmitProgress(null);
   }
 
   function addRow() {
     setRows((current) => [...current, createEmptyPayoutRow()]);
     setSubmitState("idle");
     setSubmitError(null);
+    setSubmitProgress(null);
   }
 
   function removeRow(id: string) {
@@ -121,6 +142,7 @@ export function PayoutRunWorkspace({
       setCsvError(null);
       setSubmitState("idle");
       setSubmitError(null);
+      setSubmitProgress(null);
     } catch (error) {
       setCsvError(error instanceof Error ? error.message : "CSV import failed.");
     }
@@ -136,10 +158,37 @@ export function PayoutRunWorkspace({
     setSaveError(null);
     setSubmitState("idle");
     setSubmitError(null);
+    setSubmitProgress(null);
     setPrivateBalance(null);
     setDepositNeeded(null);
     setPaidPrivateCount(0);
     lastSavedRef.current = serializeDraft(entryMode, nextRows);
+  }
+
+  async function persistRunStatus(params: {
+    status: PayoutRunStatus;
+    privateDepositSignature?: string | null;
+    privateStatus?: string | null;
+    rows: Array<{
+      id: string;
+      rowStatus: PayoutRowStatus;
+      txSignature?: string | null;
+      privateWithdrawSignature?: string | null;
+      privateStatus?: string | null;
+      errorMessage?: string | null;
+    }>;
+  }) {
+    if (!runId) return;
+
+    const response = await fetch(`/api/payout-runs/${runId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(payload?.error ?? "Could not persist payout status.");
+    }
   }
 
   async function handleSubmitRun() {
@@ -153,13 +202,134 @@ export function PayoutRunWorkspace({
       return;
     }
 
+    if (entryMode !== "manual") {
+      setSubmitError("Bulk Cloak payroll is implemented in Phase 5. Use Pay for one recipient now.");
+      return;
+    }
+
+    if (privateAsset.symbol !== "SOL") {
+      setSubmitError("Phase 4 supports private SOL sends only.");
+      return;
+    }
+
     if (!connected || !publicKey) {
       setSubmitError("Connect the funding wallet before sending payouts.");
       return;
     }
 
-    setSubmitState("failed");
-    setSubmitError("Cloak execution is not wired yet. Phase 4 and Phase 5 add manual and bulk Cloak sends.");
+    if (!signTransaction) {
+      setSubmitError("This wallet does not support transaction signing.");
+      return;
+    }
+
+    if (!signMessage) {
+      setSubmitError("This wallet does not support message signing, which Cloak needs for relay authentication.");
+      return;
+    }
+
+    const row = rowsToPersist[0];
+    if (!row) return;
+
+    setSubmitState("preparing");
+    setSubmitError(null);
+    setSubmitProgress("Preparing private payment");
+
+    let depositSignature: string | null = null;
+
+    try {
+      const recipient = new PublicKey(row.walletAddress.trim());
+      const amountBaseUnits = decimalAmountToBaseUnits(row.amount, privateAsset.decimals);
+      const startedRows = rowsToPersist.map((currentRow) =>
+        currentRow.id === row.id
+          ? { ...currentRow, rowStatus: "paying" as const, errorMessage: null }
+          : currentRow,
+      );
+      setRows(startedRows);
+
+      await persistRunStatus({
+        status: "depositing",
+        privateStatus: "depositing",
+        rows: [{ id: row.id, rowStatus: "paying", privateStatus: "depositing", errorMessage: null }],
+      });
+
+      const { fastSendPrivateSol } = await import("@/lib/cloak/fast-send");
+      const result = await fastSendPrivateSol({
+        amountBaseUnits,
+        recipient,
+        sender: publicKey,
+        connection,
+        signTransaction,
+        signMessage,
+        onPhase: (phase) => {
+          setSubmitState(phase === "success" ? "completed" : phase.includes("submit") ? "submitting" : "preparing");
+          setSubmitProgress(labelFastSendPhase(phase));
+        },
+        onProgress: setSubmitProgress,
+        onDepositConfirmed: async ({ signature }) => {
+          depositSignature = signature;
+          await persistRunStatus({
+            status: "deposit_confirmed",
+            privateDepositSignature: signature,
+            privateStatus: "deposit_confirmed",
+            rows: [{ id: row.id, rowStatus: "paying", privateStatus: "deposit_confirmed", errorMessage: null }],
+          });
+        },
+      });
+
+      const paidRow: PayoutRowDraft = {
+        ...row,
+        amountBaseUnits: amountBaseUnits.toString(),
+        rowStatus: "paid_private",
+        txSignature: result.withdrawSignature,
+        privateWithdrawSignature: result.withdrawSignature,
+        privateStatus: "paid_private",
+        errorMessage: null,
+      };
+      setRows([paidRow]);
+      setPaidPrivateCount(1);
+      setSubmitState("completed");
+      setSubmitProgress("Private payment completed");
+
+      await persistRunStatus({
+        status: "completed",
+        privateDepositSignature: result.depositSignature,
+        privateStatus: "completed",
+        rows: [
+          {
+            id: row.id,
+            rowStatus: "paid_private",
+            txSignature: result.withdrawSignature,
+            privateWithdrawSignature: result.withdrawSignature,
+            privateStatus: "paid_private",
+            errorMessage: null,
+          },
+        ],
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Private payment failed.";
+      const isRecoverable = Boolean(depositSignature);
+      const nextRunStatus: PayoutRunStatus = isRecoverable ? "recoverable" : "failed";
+      const nextPrivateStatus = isRecoverable ? "recoverable" : "failed";
+      const nextMessage = isRecoverable
+        ? `${message} The deposit transaction already confirmed, so this run needs recovery instead of a fresh resend.`
+        : message;
+      setSubmitState("failed");
+      setSubmitError(nextMessage);
+      setSubmitProgress(null);
+      setRows((current) =>
+        current.map((currentRow) =>
+          currentRow.id === row.id
+            ? { ...currentRow, rowStatus: "failed", privateStatus: nextPrivateStatus, errorMessage: nextMessage }
+            : currentRow,
+        ),
+      );
+      await persistRunStatus({
+        status: nextRunStatus,
+        privateDepositSignature: depositSignature,
+        privateStatus: nextPrivateStatus,
+        rows: [{ id: row.id, rowStatus: "failed", privateStatus: nextPrivateStatus, errorMessage: nextMessage }],
+      }).catch(() => undefined);
+    }
   }
 
   useEffect(() => {
@@ -595,6 +765,8 @@ export function PayoutRunWorkspace({
               <p className="mt-2 text-sm text-[var(--brand-ink-deep)]">
                 {!payoutConfigured
                   ? "Private payouts are disabled in this build."
+                  : submitProgress
+                    ? submitProgress
                   : submitState === "preparing"
                     ? "Preparing the Cloak private transfer…"
                   : submitState === "submitting"
@@ -637,7 +809,7 @@ export function PayoutRunWorkspace({
             </Button>
 
             <p className="text-xs leading-6 text-[var(--brand-muted-ink)]">
-              Private payouts are migrating to Cloak. Execution will be enabled in the Cloak send phases.
+              Manual pay uses a Cloak deposit followed by a private withdraw to the recipient. Bulk pay is wired in Phase 5.
             </p>
           </CardContent>
         </Card>

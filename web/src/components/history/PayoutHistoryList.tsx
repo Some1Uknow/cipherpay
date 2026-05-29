@@ -277,6 +277,11 @@ export function PayoutHistoryList({ runs }: PayoutHistoryListProps) {
 
   return (
     <>
+      <div className="mb-3 flex items-center justify-between rounded-[24px] bg-[var(--brand-surface)] px-4 py-3 shadow-neoInsetSm">
+        <p className="text-sm font-semibold text-[var(--brand-ink)]">{runs.length} payout runs</p>
+        <p className="text-xs text-[var(--brand-muted-ink)]">Newest first</p>
+      </div>
+
       <div className="grid content-start gap-3.5">
         {runs.map((run) => (
           <button key={run.id} type="button" className="block w-full text-left" onClick={() => setSelectedRunId(run.id)}>

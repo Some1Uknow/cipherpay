@@ -5,7 +5,7 @@ import { listPayoutRunsForUser } from "@/lib/payout-runs/store";
 
 export default async function HistoryPage() {
   const session = await requireSession("/history");
-  const runs = await listPayoutRunsForUser(session.userId, 20);
+  const runs = await listPayoutRunsForUser(session.userId, 100);
 
   return (
     <>

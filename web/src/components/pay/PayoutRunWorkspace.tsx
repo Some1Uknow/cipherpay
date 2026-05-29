@@ -10,10 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { decimalAmountToBaseUnits, formatBaseUnits } from "@/lib/cloak/amounts";
+import { decimalAmountToBaseUnits } from "@/lib/cloak/amounts";
 import type { FastSendPhase } from "@/lib/cloak/fast-send";
 import { getPrivatePayoutAsset, isCloakPrivateRailEnabled } from "@/lib/cloak/config";
 import type { PersistedPayoutRun, PayoutRowDraft, PayoutRowStatus, PayoutRunEntryMode, PayoutRunStatus } from "@/lib/payout-runs/types";
+import { cn } from "@/lib/utils";
 import {
   CSV_SAMPLE,
   createEmptyPayoutRow,
@@ -25,6 +26,29 @@ import {
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 type SubmitState = "idle" | "preparing" | "submitting" | "completed" | "failed";
+type ReceiptStatus = "success" | "failed" | "recoverable";
+
+type PaymentReceipt = {
+  status: ReceiptStatus;
+  runId: string | null;
+  mode: PayoutRunEntryMode;
+  recipientName: string;
+  walletAddress: string;
+  amount: string;
+  assetSymbol: string;
+  depositSignature?: string | null;
+  withdrawSignature?: string | null;
+  errorMessage?: string | null;
+  createdAt: string;
+};
+
+const EXECUTION_PHASES: Array<{ id: FastSendPhase; label: string; description: string }> = [
+  { id: "deposit-proof", label: "Deposit proof", description: "Generate the shielded deposit proof." },
+  { id: "deposit-submit", label: "Fund private note", description: "Confirm the public funding transaction." },
+  { id: "withdraw-proof", label: "Transfer proof", description: "Generate the recipient withdraw proof." },
+  { id: "withdraw-submit", label: "Private send", description: "Submit the private transfer to Cloak." },
+  { id: "success", label: "Receipt", description: "Record signatures and close the run." },
+];
 
 function labelFastSendPhase(phase: FastSendPhase) {
   switch (phase) {
@@ -39,6 +63,251 @@ function labelFastSendPhase(phase: FastSendPhase) {
     case "success":
       return "Paid privately";
   }
+}
+
+function shortSignature(value?: string | null, edge = 8) {
+  if (!value) return "Not recorded";
+  if (value.length <= edge * 2 + 3) return value;
+  return `${value.slice(0, edge)}...${value.slice(-edge)}`;
+}
+
+function receiptTitle(status: ReceiptStatus) {
+  if (status === "success") return "Payment sent";
+  if (status === "recoverable") return "Payment needs recovery";
+  return "Payment failed";
+}
+
+function downloadReceiptPng(receipt: PaymentReceipt) {
+  const canvas = document.createElement("canvas");
+  const scale = window.devicePixelRatio || 1;
+  canvas.width = 900 * scale;
+  canvas.height = 620 * scale;
+
+  const context = canvas.getContext("2d");
+  if (!context) return;
+
+  context.scale(scale, scale);
+  context.fillStyle = "#f7fbff";
+  context.fillRect(0, 0, 900, 620);
+  context.fillStyle = "#ffffff";
+  roundRect(context, 42, 42, 816, 536, 28);
+  context.fill();
+  context.strokeStyle = "#dbe7f3";
+  context.lineWidth = 2;
+  context.stroke();
+
+  context.fillStyle = receipt.status === "success" ? "#0f9f6e" : receipt.status === "recoverable" ? "#b7791f" : "#b91c1c";
+  roundRect(context, 78, 78, 176, 38, 19);
+  context.fill();
+  context.fillStyle = "#ffffff";
+  context.font = "600 15px sans-serif";
+  context.fillText(receiptTitle(receipt.status), 100, 102);
+
+  context.fillStyle = "#0f172a";
+  context.font = "700 42px sans-serif";
+  context.fillText(`${receipt.amount} ${receipt.assetSymbol}`, 78, 174);
+  context.font = "500 18px sans-serif";
+  context.fillStyle = "#64748b";
+  context.fillText(`CipherPay ${receipt.mode === "manual" ? "manual pay" : "bulk pay"} receipt`, 78, 210);
+
+  const rows = [
+    ["Recipient", receipt.recipientName || "Recipient"],
+    ["Wallet", receipt.walletAddress],
+    ["Deposit", shortSignature(receipt.depositSignature, 10)],
+    ["Withdraw", shortSignature(receipt.withdrawSignature, 10)],
+    ["Run", receipt.runId ?? "Not saved"],
+    ["Time", new Date(receipt.createdAt).toLocaleString()],
+  ];
+
+  let y = 284;
+  for (const [label, value] of rows) {
+    context.fillStyle = "#64748b";
+    context.font = "600 13px sans-serif";
+    context.fillText(label.toUpperCase(), 78, y);
+    context.fillStyle = "#0f172a";
+    context.font = "600 18px sans-serif";
+    wrapCanvasText(context, value, 78, y + 28, 720, 24);
+    y += 70;
+  }
+
+  if (receipt.errorMessage) {
+    context.fillStyle = "#b91c1c";
+    context.font = "600 15px sans-serif";
+    wrapCanvasText(context, receipt.errorMessage, 78, 548, 720, 22);
+  }
+
+  const link = document.createElement("a");
+  link.download = `cipherpay-${receipt.mode}-${Date.now()}.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+function roundRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
+  context.beginPath();
+  context.moveTo(x + radius, y);
+  context.arcTo(x + width, y, x + width, y + height, radius);
+  context.arcTo(x + width, y + height, x, y + height, radius);
+  context.arcTo(x, y + height, x, y, radius);
+  context.arcTo(x, y, x + width, y, radius);
+  context.closePath();
+}
+
+function wrapCanvasText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+) {
+  const words = text.split(" ");
+  let line = "";
+  for (const word of words) {
+    const testLine = line ? `${line} ${word}` : word;
+    if (context.measureText(testLine).width > maxWidth && line) {
+      context.fillText(line, x, y);
+      line = word;
+      y += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  context.fillText(line, x, y);
+}
+
+function ExecutionStatusBox({
+  activePhase,
+  submitState,
+  proofProgress,
+}: {
+  activePhase: FastSendPhase | null;
+  submitState: SubmitState;
+  proofProgress: number | null;
+}) {
+  const activeIndex = activePhase ? EXECUTION_PHASES.findIndex((phase) => phase.id === activePhase) : -1;
+  const allComplete = submitState === "completed";
+  const started = activeIndex >= 0 || submitState === "completed" || submitState === "failed";
+  const visiblePhases = started
+    ? EXECUTION_PHASES.filter((_, index) => index <= Math.max(activeIndex, allComplete ? EXECUTION_PHASES.length - 1 : 0))
+    : [];
+
+  return (
+    <div className="rounded-[24px] border border-white/80 bg-white/72 p-3 shadow-neoInsetSm">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand-muted-ink)]">Execution</p>
+        {proofProgress !== null && submitState !== "completed" ? (
+          <p className="text-[11px] font-semibold text-[var(--brand-primary)]">Proof {proofProgress}%</p>
+        ) : null}
+      </div>
+
+      <div className="mt-3 grid gap-2">
+        {visiblePhases.length > 0 ? (
+          visiblePhases.map((phase, index) => {
+            const complete = allComplete || (activeIndex > index && submitState !== "failed");
+            const active = activeIndex === index && submitState !== "completed" && submitState !== "failed";
+            const failed = activeIndex === index && submitState === "failed";
+
+            return (
+              <div
+                key={phase.id}
+                className={cn(
+                  "flex translate-y-0 items-center gap-3 rounded-[18px] border px-3 py-2.5 opacity-100 transition-all duration-500",
+                  complete
+                    ? "border-emerald-200 bg-emerald-50/90"
+                    : active
+                      ? "border-[rgba(0,82,255,0.22)] bg-white shadow-neoSm"
+                      : failed
+                        ? "border-red-200 bg-red-50/90"
+                        : "border-white/80 bg-white/60",
+                )}
+              >
+                <div
+                  className={cn(
+                    "grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold transition-colors duration-300",
+                    complete
+                      ? "bg-emerald-600 text-white"
+                      : active
+                        ? "bg-[var(--brand-primary)] text-white"
+                        : failed
+                          ? "bg-red-600 text-white"
+                          : "bg-slate-100 text-slate-500",
+                  )}
+                >
+                  {complete ? "✓" : failed ? "!" : active ? <span className="size-3 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : index + 1}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[var(--brand-ink)]">{phase.label}</p>
+                  <p className="truncate text-xs text-[var(--brand-muted-ink)]">
+                    {active && proofProgress !== null ? `${phase.description} ${proofProgress}%` : phase.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="flex items-center gap-3 rounded-[18px] border border-white/80 bg-white/60 px-3 py-2.5">
+            <div className="grid size-8 place-items-center rounded-full bg-slate-100 text-sm font-bold text-slate-500">1</div>
+            <div>
+              <p className="text-sm font-semibold text-[var(--brand-ink)]">Ready when you are</p>
+              <p className="text-xs text-[var(--brand-muted-ink)]">Click send to start proof generation.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PaymentReceiptModal({
+  receipt,
+  onClose,
+}: {
+  receipt: PaymentReceipt;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.38)] px-4 py-6 backdrop-blur-[10px]" role="dialog" aria-modal="true">
+      <button type="button" className="absolute inset-0" aria-label="Close receipt" onClick={onClose} />
+      <div className="relative w-full max-w-xl overflow-hidden rounded-[34px] border border-white/80 bg-[linear-gradient(180deg,#ffffff,#f4f9ff)] p-5 shadow-[0_28px_90px_rgba(15,23,42,0.22)] sm:p-6">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(0,82,255,0.14),transparent_72%)]" />
+        <div className="relative">
+          <Badge tone={receipt.status === "success" ? "green" : receipt.status === "recoverable" ? "amber" : "amber"}>
+            {receiptTitle(receipt.status)}
+          </Badge>
+          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.055em] text-[var(--brand-ink-deep)]">
+            {receipt.amount} {receipt.assetSymbol}
+          </h2>
+          <p className="mt-1 text-sm text-[var(--brand-muted-ink)]">
+            {receipt.mode === "manual" ? "Manual pay" : "Bulk pay"} · {new Date(receipt.createdAt).toLocaleString()}
+          </p>
+
+          <div className="mt-5 grid gap-3 rounded-[26px] bg-[var(--brand-surface)] p-4 shadow-neoInsetSm">
+            {[
+              ["Recipient", receipt.recipientName || "Recipient"],
+              ["Wallet", receipt.walletAddress],
+              ["Deposit tx", shortSignature(receipt.depositSignature)],
+              ["Private transfer", shortSignature(receipt.withdrawSignature)],
+              ["Run", receipt.runId ?? "Not saved"],
+            ].map(([label, value]) => (
+              <div key={label} className="grid gap-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">{label}</p>
+                <p className="break-all text-sm font-semibold text-[var(--brand-ink)]">{value}</p>
+              </div>
+            ))}
+          </div>
+
+          {receipt.errorMessage ? (
+            <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{receipt.errorMessage}</p>
+          ) : null}
+
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={onClose}>Close</Button>
+            <Button onClick={() => downloadReceiptPng(receipt)}>Download PNG</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function PayoutRunWorkspace({
@@ -70,12 +339,9 @@ export function PayoutRunWorkspace({
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitProgress, setSubmitProgress] = useState<string | null>(null);
-  const [privateBalance, setPrivateBalance] = useState<string | null>(initialRun?.privateBalanceAfter ?? initialRun?.privateBalanceBefore ?? null);
-  const [depositNeeded, setDepositNeeded] = useState<string | null>(null);
-  const [paidPrivateCount, setPaidPrivateCount] = useState(() => {
-    const sourceRows = entryMode === "manual" ? initialRun?.rows.slice(0, 1) : initialRun?.rows;
-    return sourceRows?.filter((row) => row.rowStatus === "paid_private").length ?? 0;
-  });
+  const [activePhase, setActivePhase] = useState<FastSendPhase | null>(null);
+  const [proofProgress, setProofProgress] = useState<number | null>(null);
+  const [receipt, setReceipt] = useState<PaymentReceipt | null>(null);
   const privateAsset = useMemo(() => getPrivatePayoutAsset(), []);
   const rowsToPersist = useMemo(() => (entryMode === "manual" ? rows.slice(0, 1) : rows), [entryMode, rows]);
 
@@ -120,6 +386,8 @@ export function PayoutRunWorkspace({
     setSubmitState("idle");
     setSubmitError(null);
     setSubmitProgress(null);
+    setActivePhase(null);
+    setProofProgress(null);
   }
 
   function addRow() {
@@ -127,12 +395,17 @@ export function PayoutRunWorkspace({
     setSubmitState("idle");
     setSubmitError(null);
     setSubmitProgress(null);
+    setActivePhase(null);
+    setProofProgress(null);
   }
 
   function removeRow(id: string) {
     setRows((current) => current.filter((row) => row.id !== id));
     setSubmitState("idle");
     setSubmitError(null);
+    setSubmitProgress(null);
+    setActivePhase(null);
+    setProofProgress(null);
   }
 
   function loadCsvIntoTable() {
@@ -143,6 +416,8 @@ export function PayoutRunWorkspace({
       setSubmitState("idle");
       setSubmitError(null);
       setSubmitProgress(null);
+      setActivePhase(null);
+      setProofProgress(null);
     } catch (error) {
       setCsvError(error instanceof Error ? error.message : "CSV import failed.");
     }
@@ -159,9 +434,9 @@ export function PayoutRunWorkspace({
     setSubmitState("idle");
     setSubmitError(null);
     setSubmitProgress(null);
-    setPrivateBalance(null);
-    setDepositNeeded(null);
-    setPaidPrivateCount(0);
+    setActivePhase(null);
+    setProofProgress(null);
+    setReceipt(null);
     lastSavedRef.current = serializeDraft(entryMode, nextRows);
   }
 
@@ -233,6 +508,9 @@ export function PayoutRunWorkspace({
     setSubmitState("preparing");
     setSubmitError(null);
     setSubmitProgress("Preparing private payment");
+    setActivePhase("deposit-proof");
+    setProofProgress(null);
+    setReceipt(null);
 
     let depositSignature: string | null = null;
 
@@ -261,10 +539,15 @@ export function PayoutRunWorkspace({
         signTransaction,
         signMessage,
         onPhase: (phase) => {
+          setActivePhase(phase);
           setSubmitState(phase === "success" ? "completed" : phase.includes("submit") ? "submitting" : "preparing");
           setSubmitProgress(labelFastSendPhase(phase));
         },
         onProgress: setSubmitProgress,
+        onProofProgress: (percent) => {
+          const normalized = percent <= 1 ? percent * 100 : percent;
+          setProofProgress(Math.max(0, Math.min(100, Math.round(normalized))));
+        },
         onDepositConfirmed: async ({ signature }) => {
           depositSignature = signature;
           await persistRunStatus({
@@ -285,9 +568,11 @@ export function PayoutRunWorkspace({
         privateStatus: "paid_private",
         errorMessage: null,
       };
+      lastSavedRef.current = serializeDraft(entryMode, [paidRow]);
       setRows([paidRow]);
-      setPaidPrivateCount(1);
       setSubmitState("completed");
+      setActivePhase("success");
+      setProofProgress(100);
       setSubmitProgress("Private payment completed");
 
       await persistRunStatus({
@@ -305,6 +590,19 @@ export function PayoutRunWorkspace({
           },
         ],
       });
+      setRunId(null);
+      setReceipt({
+        status: "success",
+        runId,
+        mode: entryMode,
+        recipientName: row.recipientName,
+        walletAddress: row.walletAddress,
+        amount: row.amount,
+        assetSymbol: privateAsset.symbol,
+        depositSignature: result.depositSignature,
+        withdrawSignature: result.withdrawSignature,
+        createdAt: new Date().toISOString(),
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Private payment failed.";
       const isRecoverable = Boolean(depositSignature);
@@ -316,6 +614,7 @@ export function PayoutRunWorkspace({
       setSubmitState("failed");
       setSubmitError(nextMessage);
       setSubmitProgress(null);
+      setProofProgress(null);
       setRows((current) =>
         current.map((currentRow) =>
           currentRow.id === row.id
@@ -329,6 +628,18 @@ export function PayoutRunWorkspace({
         privateStatus: nextPrivateStatus,
         rows: [{ id: row.id, rowStatus: "failed", privateStatus: nextPrivateStatus, errorMessage: nextMessage }],
       }).catch(() => undefined);
+      setReceipt({
+        status: isRecoverable ? "recoverable" : "failed",
+        runId,
+        mode: entryMode,
+        recipientName: row.recipientName,
+        walletAddress: row.walletAddress,
+        amount: row.amount,
+        assetSymbol: privateAsset.symbol,
+        depositSignature,
+        errorMessage: nextMessage,
+        createdAt: new Date().toISOString(),
+      });
     }
   }
 
@@ -380,8 +691,8 @@ export function PayoutRunWorkspace({
   const singleAmount = manualRow.amount.trim() || "0";
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
-      <div className="grid gap-6">
+    <>
+      <div className="grid gap-5">
         <Card className="overflow-hidden">
           <CardHeader>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -537,12 +848,6 @@ export function PayoutRunWorkspace({
                     </div>
                   </div>
                 </div>
-
-                <div className="flex justify-end">
-                  <Button variant="secondary" onClick={resetRun}>
-                    Clear form
-                  </Button>
-                </div>
               </div>
             ) : (
               <>
@@ -673,147 +978,66 @@ export function PayoutRunWorkspace({
                 </div>
               </>
             )}
+            <div className="mt-6 rounded-[28px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.86),rgba(244,249,255,0.78))] p-4 shadow-neoSm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--brand-ink)]">
+                    {isReady
+                      ? `${entryMode === "manual" ? "1 recipient" : `${validCount} recipients`} · ${total.toLocaleString(undefined, {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: privateAsset.decimals,
+                        })} ${privateAsset.symbol}`
+                      : filledRows.length === 0
+                        ? "Add payment details to continue."
+                        : "Fix the highlighted fields to continue."}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--brand-muted-ink)]">
+                    {submitProgress
+                      ? submitProgress
+                      : saveState === "saving"
+                        ? "Saving draft..."
+                        : saveState === "error"
+                          ? "Draft save failed."
+                          : "Draft autosaves. The send button starts Cloak proof generation."}
+                  </p>
+                  {saveError ? <p className="mt-1 text-xs text-red-700">{saveError}</p> : null}
+                  {submitError ? <p className="mt-1 text-xs text-red-700">{submitError}</p> : null}
+                </div>
+
+                <div className="grid gap-3 lg:min-w-[360px]">
+                  <ExecutionStatusBox activePhase={activePhase} submitState={submitState} proofProgress={proofProgress} />
+                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <Button variant="secondary" onClick={resetRun}>
+                      {entryMode === "manual" ? "Clear" : "Start fresh"}
+                    </Button>
+                    <Button
+                      size="lg"
+                      disabled={!isReady || !payoutConfigured || submitState === "preparing" || submitState === "submitting" || submitState === "completed"}
+                      onClick={handleSubmitRun}
+                    >
+                      {!payoutConfigured
+                        ? "Private payouts unavailable"
+                        : submitState === "completed"
+                          ? "Payment sent"
+                        : submitState === "preparing"
+                          ? "Generating proof..."
+                          : submitState === "submitting"
+                            ? "Sending..."
+                            : rowsToPersist.some((row) => row.rowStatus === "failed")
+                              ? "Retry payment"
+                              : entryMode === "manual"
+                                ? "Send payment"
+                                : "Send private payouts"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="xl:sticky xl:top-24">
-        <Card>
-          <CardHeader>
-            <CardTitle>Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 pt-5">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm px-4 py-3">
-                <p className="text-xs text-[var(--brand-muted-ink)]">{entryMode === "manual" ? "Recipient" : "Valid rows"}</p>
-                <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--brand-ink-deep)]">
-                  {entryMode === "manual" ? (filledRows.length > 0 ? 1 : 0) : validCount}
-                </p>
-              </div>
-              <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm px-4 py-3">
-                <p className="text-xs text-[var(--brand-muted-ink)]">{entryMode === "manual" ? "Needs attention" : "Needs attention"}</p>
-                <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--brand-ink-deep)]">{invalidCount}</p>
-              </div>
-              <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm px-4 py-3 sm:col-span-2 xl:col-span-1">
-                <p className="text-xs text-[var(--brand-muted-ink)]">Total amount</p>
-                <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--brand-ink-deep)]">
-                  {total.toLocaleString(undefined, {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: privateAsset.decimals,
-                  })}{" "}
-                  {privateAsset.symbol}
-                </p>
-              </div>
-              <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm px-4 py-3 sm:col-span-2 xl:col-span-1">
-                <p className="text-xs text-[var(--brand-muted-ink)]">Paid privately</p>
-                <p className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--brand-ink-deep)]">{paidPrivateCount}</p>
-              </div>
-            </div>
-
-            <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm p-4">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Funding wallet</p>
-              <p className="mt-2 break-all text-sm text-[var(--brand-ink-deep)]">{walletAddress}</p>
-            </div>
-
-            <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm p-4">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Run state</p>
-              <p className="mt-2 text-sm text-[var(--brand-ink-deep)]">
-                {isReady
-                  ? entryMode === "manual"
-                    ? "Ready to send this payout through the private rail."
-                    : "Ready to send through the private payout rail."
-                  : filledRows.length === 0
-                    ? entryMode === "manual"
-                      ? "Start by entering one recipient and one amount."
-                      : "Start by adding at least one payout row."
-                    : "Fix the highlighted rows before sending."}
-              </p>
-            </div>
-
-            <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm p-4">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Funding source</p>
-              <p className="mt-2 text-sm text-[var(--brand-ink-deep)]">
-                {privateBalance
-                  ? `${formatBaseUnits(privateBalance, privateAsset.decimals)} ${privateAsset.symbol} private balance from an earlier attempt detected. New sends use the funding wallet.`
-                  : "Uses the connected funding wallet."}
-              </p>
-              {depositNeeded ? (
-                <p className="mt-1 text-xs text-[var(--brand-muted-ink)]">
-                  Wallet amount needed: {formatBaseUnits(depositNeeded, privateAsset.decimals)} {privateAsset.symbol}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm p-4">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Draft status</p>
-              <p className="mt-2 text-sm text-[var(--brand-ink-deep)]">
-                {saveState === "saving"
-                  ? "Saving your draft…"
-                  : saveState === "saved"
-                    ? "Draft saved automatically."
-                    : saveState === "error"
-                      ? "Draft save failed."
-                      : saveState === "dirty"
-                        ? "Unsaved changes detected."
-                        : "Draft has not been saved yet."}
-              </p>
-              {saveError ? <p className="mt-2 text-xs text-red-700">{saveError}</p> : null}
-            </div>
-
-            <div className="rounded-[24px] bg-[var(--brand-surface)] shadow-neoInsetSm p-4">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">Execution</p>
-              <p className="mt-2 text-sm text-[var(--brand-ink-deep)]">
-                {!payoutConfigured
-                  ? "Private payouts are disabled in this build."
-                  : submitProgress
-                    ? submitProgress
-                  : submitState === "preparing"
-                    ? "Preparing the Cloak private transfer…"
-                  : submitState === "submitting"
-                      ? entryMode === "manual"
-                        ? "Sending the private transfer…"
-                        : "Sending private transfers…"
-                      : submitState === "completed"
-                        ? entryMode === "manual"
-                          ? "The recipient was paid privately."
-                          : "All ready rows were paid privately."
-                        : submitState === "failed"
-                          ? "Some payouts failed. Review row-level status below."
-                      : entryMode === "manual"
-                        ? "CipherPay will use Cloak to send a private transfer to the recipient wallet."
-                        : "CipherPay will use Cloak to send private transfers to recipient wallets."}
-              </p>
-              {submitError ? <p className="mt-2 text-xs text-red-700">{submitError}</p> : null}
-            </div>
-
-            <Button
-              size="lg"
-              disabled={!isReady || !payoutConfigured || submitState === "preparing" || submitState === "submitting"}
-              onClick={handleSubmitRun}
-            >
-              {!payoutConfigured
-                ? "Private payouts unavailable"
-                : submitState === "preparing"
-                  ? "Prepare private transfer…"
-                  : submitState === "submitting"
-                    ? entryMode === "manual"
-                      ? "Send payment…"
-                      : "Send private payouts…"
-                    : rowsToPersist.some((row) => row.rowStatus === "failed")
-                      ? entryMode === "manual"
-                        ? "Retry payment"
-                        : "Retry failed rows"
-                      : entryMode === "manual"
-                        ? "Send payment"
-                        : "Send private payouts"}
-            </Button>
-
-            <p className="text-xs leading-6 text-[var(--brand-muted-ink)]">
-              Manual pay uses a Cloak deposit followed by a private withdraw to the recipient. Bulk pay is wired in Phase 5.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+      {receipt ? <PaymentReceiptModal receipt={receipt} onClose={() => setReceipt(null)} /> : null}
+    </>
   );
 }

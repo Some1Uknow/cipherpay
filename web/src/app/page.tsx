@@ -70,7 +70,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
           <div className="flex flex-1 flex-col items-center justify-center pb-12 pt-12">
             <div className="w-full max-w-3xl text-center">
               <h1 className="font-display text-[3.05rem] leading-[0.98] tracking-[-0.06em] sm:text-[4.05rem] lg:text-[4.8rem]">
-                Private payouts, without the usual overhead
+                On-chain Private Invocing infrastructure
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-[var(--brand-muted-ink)] sm:text-xl">
                 Build a payout in a few simple steps, review it with your team, and keep a clear record of what was sent.

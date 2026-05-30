@@ -26,13 +26,13 @@ CipherPay is a private payroll + payout workspace for Solana.
 flowchart TB
   subgraph Browser[Browser]
     UI[Next.js UI: /pay, /bulk-pay]
-    WALLET[Wallet Adapter\n(Phantom/Solflare/Backpack)]
+    WALLET["Wallet Adapter<br/>(Phantom/Solflare/Backpack)"]
   end
 
   subgraph App[Next.js Server]
-    API[API Routes\n/auth/*, /payout-runs, /mcp/payout-drafts]
-    AUTH[SIWS Auth\nchallenge + verify]
-    RUNS[Payout Run Store\nstatus + row state]
+    API["API Routes<br/>/auth/*, /payout-runs, /mcp/payout-drafts"]
+    AUTH["SIWS Auth<br/>challenge + verify"]
+    RUNS["Payout Run Store<br/>status + row state"]
   end
 
   subgraph Data[Data]
@@ -41,9 +41,9 @@ flowchart TB
 
   subgraph Solana[Solana]
     RPC[Solana RPC]
-    CLOAK[Program\nZK shielded pool]
-    RELAY[Relay\nproof + submit]
-    CP[CipherPay Program\n(receipts + manifest hash)]
+    CLOAK["Cloak Program<br/>ZK shielded pool"]
+    RELAY["Cloak Relay<br/>proof + submit"]
+    CP["CipherPay Program<br/>(receipts + manifest hash)"]
   end
 
   UI --> API

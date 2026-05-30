@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangeEvent } from "react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
@@ -61,6 +62,8 @@ const EXECUTION_PHASES: Array<{ id: FastSendPhase; label: string; description: s
   { id: "withdraw-submit", label: "Private send", description: "Submit the private transfer to Cloak." },
   { id: "success", label: "Receipt", description: "Record signatures and close the run." },
 ];
+const CSV_ROW_LIMIT = 1000;
+const CSV_UPLOAD_BYTES_LIMIT = 2_097_152;
 
 function labelFastSendPhase(phase: FastSendPhase) {
   switch (phase) {
@@ -363,6 +366,8 @@ export function PayoutRunWorkspace({
   });
   const [csvDraft, setCsvDraft] = useState(CSV_SAMPLE);
   const [csvError, setCsvError] = useState<string | null>(null);
+  const [csvSourceModalOpen, setCsvSourceModalOpen] = useState(false);
+  const [csvSourceError, setCsvSourceError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
@@ -373,6 +378,7 @@ export function PayoutRunWorkspace({
   const [bulkProgress, setBulkProgress] = useState<BulkProgress | null>(null);
   const [receipt, setReceipt] = useState<PaymentReceipt | null>(null);
   const privateAsset = useMemo(() => getPrivatePayoutAsset(), []);
+  const csvFileInputRef = useRef<HTMLInputElement | null>(null);
   const rowsToPersist = useMemo(() => (entryMode === "manual" ? rows.slice(0, 1) : rows), [entryMode, rows]);
 
   const initialSerialized = useMemo(
@@ -441,10 +447,16 @@ export function PayoutRunWorkspace({
     setBulkProgress(null);
   }
 
-  function loadCsvIntoTable() {
+  function applyCsvDraft(nextDraft: string): string | null {
     try {
-      const parsedRows = parseCsvRows(csvDraft);
+      const parsedRows = parseCsvRows(nextDraft);
+      if (parsedRows.length > CSV_ROW_LIMIT) {
+        const message = `Keep the roster to ${CSV_ROW_LIMIT.toLocaleString()} rows or fewer.`;
+        setCsvError(message);
+        return message;
+      }
       setRows(parsedRows);
+      setCsvDraft(nextDraft);
       setCsvError(null);
       setSubmitState("idle");
       setSubmitError(null);
@@ -452,9 +464,57 @@ export function PayoutRunWorkspace({
       setActivePhase(null);
       setProofProgress(null);
       setBulkProgress(null);
+      return null;
     } catch (error) {
-      setCsvError(error instanceof Error ? error.message : "CSV import failed.");
+      const message = error instanceof Error ? error.message : "CSV import failed.";
+      setCsvError(message);
+      return message;
     }
+  }
+
+  function loadCsvIntoTable() {
+    applyCsvDraft(csvDraft);
+  }
+
+  async function handleCsvFileUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (file.size > CSV_UPLOAD_BYTES_LIMIT) {
+      const message = `CSV uploads must be under ${(CSV_UPLOAD_BYTES_LIMIT / (1024 * 1024)).toFixed(1)} MB.`;
+      setCsvError(message);
+      setCsvSourceError(message);
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        const message = "The CSV file is empty.";
+        setCsvError(message);
+        setCsvSourceError(message);
+        return;
+      }
+      const errorMessage = applyCsvDraft(text);
+      if (errorMessage) {
+        setCsvSourceError(errorMessage);
+        return;
+      }
+      setCsvSourceError(null);
+      setCsvSourceModalOpen(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "CSV import failed.";
+      setCsvError(message);
+      setCsvSourceError(message);
+    }
+  }
+
+  function handleCsvTypeOut() {
+    setCsvDraft(CSV_SAMPLE);
+    setCsvError(null);
+    setCsvSourceError(null);
+    setCsvSourceModalOpen(false);
   }
 
   function resetRun() {
@@ -463,6 +523,8 @@ export function PayoutRunWorkspace({
     setRows(nextRows);
     setCsvDraft(CSV_SAMPLE);
     setCsvError(null);
+    setCsvSourceError(null);
+    setCsvSourceModalOpen(false);
     setSaveState("idle");
     setSaveError(null);
     setSubmitState("idle");
@@ -905,9 +967,93 @@ export function PayoutRunWorkspace({
   const manualIssues = issues[0] ?? {};
   const singleRecipientName = manualRow.recipientName.trim() || "Recipient not added";
   const singleAmount = manualRow.amount.trim() || "0";
+  const isManual = entryMode === "manual";
+  const summaryCopy = (
+    <div>
+      <p className="text-sm font-semibold text-[var(--brand-ink)]">
+        {isReady
+          ? `${isManual ? "1 recipient" : `${validCount} recipients`} · ${total.toLocaleString(undefined, {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: privateAsset.decimals,
+            })} ${privateAsset.symbol}`
+          : filledRows.length === 0
+            ? "Add payment details to continue."
+            : "Fix the highlighted fields to continue."}
+      </p>
+      <p className="mt-1 text-xs leading-5 text-[var(--brand-muted-ink)]">
+        {submitProgress
+          ? submitProgress
+          : saveState === "saving"
+            ? "Saving draft..."
+            : saveState === "error"
+              ? "Draft save failed."
+              : "Draft autosaves. The send button starts Cloak proof generation."}
+      </p>
+      {saveError ? <p className="mt-1 text-xs text-red-700">{saveError}</p> : null}
+      {submitError ? <p className="mt-1 text-xs text-red-700">{submitError}</p> : null}
+    </div>
+  );
 
   return (
     <>
+      {entryMode === "csv" && csvSourceModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.38)] px-4 py-6 backdrop-blur-[10px]" role="dialog" aria-modal="true">
+          <button type="button" className="absolute inset-0" aria-label="Close CSV options" onClick={() => setCsvSourceModalOpen(false)} />
+          <div className="relative w-full max-w-lg overflow-hidden rounded-[32px] border border-white/80 bg-[linear-gradient(180deg,#ffffff,#f4f9ff)] p-5 shadow-[0_28px_90px_rgba(15,23,42,0.22)] sm:p-6">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(0,82,255,0.14),transparent_72%)]" />
+            <div className="relative">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--brand-muted-ink)]">CSV roster</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--brand-ink)]">
+                How would you like to add recipients?
+              </h2>
+              <p className="mt-2 text-sm text-[var(--brand-muted-ink)]">
+                Choose between typing a roster or uploading a CSV file.
+              </p>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  className="rounded-[22px] border border-white/80 bg-[var(--brand-surface)] p-4 text-left shadow-neoSm transition hover:-translate-y-0.5 hover:shadow-neo-hover"
+                  onClick={handleCsvTypeOut}
+                >
+                  <p className="text-sm font-semibold text-[var(--brand-ink)]">Type it out</p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--brand-muted-ink)]">
+                    Paste or edit a roster in the editor. Up to {CSV_ROW_LIMIT.toLocaleString()} rows.
+                  </p>
+                </button>
+
+                <div className="rounded-[22px] border border-white/80 bg-[var(--brand-surface)] p-4 shadow-neoSm">
+                  <p className="text-sm font-semibold text-[var(--brand-ink)]">Upload a CSV</p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--brand-muted-ink)]">
+                    CSV up to {(CSV_UPLOAD_BYTES_LIMIT / (1024 * 1024)).toFixed(1)} MB with columns recipient_name, wallet_address,
+                    amount.
+                  </p>
+                  <div className="mt-3">
+                    <input
+                      ref={csvFileInputRef}
+                      type="file"
+                      accept=".csv,text/csv"
+                      className="sr-only"
+                      onChange={handleCsvFileUpload}
+                    />
+                    <Button size="sm" onClick={() => csvFileInputRef.current?.click()}>
+                      Choose file
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {csvSourceError ? <p className="mt-4 text-sm text-red-700">{csvSourceError}</p> : null}
+
+              <div className="mt-5 flex justify-end">
+                <Button variant="secondary" onClick={() => setCsvSourceModalOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="grid gap-5">
         <Card className="overflow-hidden">
           <CardHeader>
@@ -954,10 +1100,19 @@ export function PayoutRunWorkspace({
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-[var(--brand-ink)]">CSV roster</p>
-                    <p className="text-sm text-[var(--brand-muted-ink)]">Required columns: recipient_name, wallet_address, amount</p>
+                    <p className="text-sm text-[var(--brand-muted-ink)]">
+                      Required columns: recipient_name, wallet_address, amount · Max {CSV_ROW_LIMIT.toLocaleString()} rows
+                    </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => setCsvDraft(CSV_SAMPLE)}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setCsvSourceModalOpen(true);
+                        setCsvSourceError(null);
+                      }}
+                    >
                       Load sample
                     </Button>
                     <Button size="sm" onClick={loadCsvIntoTable}>
@@ -1076,6 +1231,14 @@ export function PayoutRunWorkspace({
                           )}
                         </div>
                       </div>
+                    </div>
+                    <div className="mt-4">
+                      <ExecutionStatusBox
+                        activePhase={activePhase}
+                        submitState={submitState}
+                        proofProgress={proofProgress}
+                        bulkProgress={bulkProgress}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1210,41 +1373,20 @@ export function PayoutRunWorkspace({
               </>
             )}
             <div className="mt-6 rounded-[28px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.86),rgba(244,249,255,0.78))] p-4 shadow-neoSm">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-[var(--brand-ink)]">
-                    {isReady
-                      ? `${entryMode === "manual" ? "1 recipient" : `${validCount} recipients`} · ${total.toLocaleString(undefined, {
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: privateAsset.decimals,
-                        })} ${privateAsset.symbol}`
-                      : filledRows.length === 0
-                        ? "Add payment details to continue."
-                        : "Fix the highlighted fields to continue."}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[var(--brand-muted-ink)]">
-                    {submitProgress
-                      ? submitProgress
-                      : saveState === "saving"
-                        ? "Saving draft..."
-                        : saveState === "error"
-                          ? "Draft save failed."
-                          : "Draft autosaves. The send button starts Cloak proof generation."}
-                  </p>
-                  {saveError ? <p className="mt-1 text-xs text-red-700">{saveError}</p> : null}
-                  {submitError ? <p className="mt-1 text-xs text-red-700">{submitError}</p> : null}
-                </div>
-
-                <div className="grid gap-3 lg:min-w-[360px]">
-                  <ExecutionStatusBox
-                    activePhase={activePhase}
-                    submitState={submitState}
-                    proofProgress={proofProgress}
-                    bulkProgress={bulkProgress}
-                  />
-                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              {entryMode === "csv" ? (
+                <>
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start">
+                    {summaryCopy}
+                    <ExecutionStatusBox
+                      activePhase={activePhase}
+                      submitState={submitState}
+                      proofProgress={proofProgress}
+                      bulkProgress={bulkProgress}
+                    />
+                  </div>
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
                     <Button variant="secondary" onClick={resetRun}>
-                      {entryMode === "manual" ? "Clear" : "Start fresh"}
+                      {isManual ? "Clear" : "Start fresh"}
                     </Button>
                     <Button
                       size="lg"
@@ -1261,13 +1403,41 @@ export function PayoutRunWorkspace({
                             ? "Sending..."
                             : rowsToPersist.some((row) => row.rowStatus === "failed")
                               ? "Retry payment"
-                              : entryMode === "manual"
+                              : isManual
+                                ? "Send payment"
+                                : "Send private payouts"}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  {summaryCopy}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <Button variant="secondary" onClick={resetRun}>
+                      {isManual ? "Clear" : "Start fresh"}
+                    </Button>
+                    <Button
+                      size="lg"
+                      disabled={!isReady || !payoutConfigured || submitState === "preparing" || submitState === "submitting" || submitState === "completed"}
+                      onClick={handleSubmitRun}
+                    >
+                      {!payoutConfigured
+                        ? "Private payouts unavailable"
+                        : submitState === "completed"
+                          ? "Payment sent"
+                        : submitState === "preparing"
+                          ? "Generating proof..."
+                          : submitState === "submitting"
+                            ? "Sending..."
+                            : rowsToPersist.some((row) => row.rowStatus === "failed")
+                              ? "Retry payment"
+                              : isManual
                                 ? "Send payment"
                                 : "Send private payouts"}
                     </Button>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -6,7 +6,7 @@ node_modules
 test-ledger
 .yarn
 *wallet.json
-docs/
+/docs/
 cipherpay-*.png
 .playwright-mcp/
 videos/**/node_modules/

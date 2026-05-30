@@ -8,13 +8,34 @@ export type ChallengeResponse = {
   issuedAt: string;
   expiresAt: string;
   message: string;
+  signInInput: WalletSignInInput;
 };
 
 type SignMessageFn = (message: Uint8Array) => Promise<Uint8Array>;
+type WalletSignInInput = {
+  domain?: string;
+  address?: string;
+  statement?: string;
+  uri?: string;
+  version?: string;
+  chainId?: string;
+  nonce?: string;
+  issuedAt?: string;
+  expirationTime?: string;
+};
+type WalletSignInOutput = {
+  account: {
+    address: string;
+  };
+  signedMessage: Uint8Array;
+  signature: Uint8Array;
+};
+type SignInFn = (input?: WalletSignInInput) => Promise<WalletSignInOutput>;
 
 export async function createWalletSession(params: {
   walletAddress: string;
-  signMessage: SignMessageFn;
+  signMessage?: SignMessageFn;
+  signIn?: SignInFn;
 }): Promise<void> {
   const challengeResponse = await fetch("/api/auth/challenge", {
     method: "POST",
@@ -27,8 +48,25 @@ export async function createWalletSession(params: {
     throw new Error("error" in challengePayload ? challengePayload.error : "Failed to create a sign-in challenge.");
   }
 
-  const signatureBytes = await params.signMessage(new TextEncoder().encode(challengePayload.message));
-  const signature = bs58.encode(signatureBytes);
+  let signature: string;
+  let signedMessage: string | undefined;
+
+  if (params.signIn) {
+    const signInOutput = await params.signIn(challengePayload.signInInput);
+    if (signInOutput.account.address !== params.walletAddress) {
+      throw new Error("The wallet signed in with a different account. Choose the expected wallet and try again.");
+    }
+
+    signature = bs58.encode(signInOutput.signature);
+    signedMessage = bs58.encode(signInOutput.signedMessage);
+  } else {
+    if (!params.signMessage) {
+      throw new Error("This wallet does not expose message signing. Use a supported Solana wallet.");
+    }
+
+    const signatureBytes = await params.signMessage(new TextEncoder().encode(challengePayload.message));
+    signature = bs58.encode(signatureBytes);
+  }
 
   const verifyResponse = await fetch("/api/auth/verify", {
     method: "POST",
@@ -37,6 +75,7 @@ export async function createWalletSession(params: {
       walletAddress: params.walletAddress,
       nonce: challengePayload.nonce,
       signature,
+      signedMessage,
     }),
   });
 

@@ -2,24 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import bs58 from "bs58";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-type ChallengeResponse = {
-  walletAddress: string;
-  nonce: string;
-  issuedAt: string;
-  expiresAt: string;
-  message: string;
-};
+import { createWalletSession } from "@/lib/auth/client";
 
 export function WalletAuthPanel() {
   const router = useRouter();
-  const { connected, publicKey, signMessage } = useWallet();
+  const { connected, publicKey, signIn, signMessage } = useWallet();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,44 +27,15 @@ export function WalletAuthPanel() {
       return;
     }
 
-    if (!signMessage) {
-      setErrorMessage("This wallet does not expose message signing. Use Phantom or Solflare.");
+    if (!signMessage && !signIn) {
+      setErrorMessage("This wallet does not expose message signing. Use a supported Solana wallet.");
       setIsSubmitting(false);
       return;
     }
 
     try {
       const walletAddress = publicKey.toBase58();
-      const challengeResponse = await fetch("/api/auth/challenge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress }),
-      });
-
-      const challengePayload = (await challengeResponse.json()) as ChallengeResponse | { error: string };
-      if (!challengeResponse.ok || !("message" in challengePayload)) {
-        throw new Error(
-          "error" in challengePayload ? challengePayload.error : "Failed to create a sign-in challenge.",
-        );
-      }
-
-      const signatureBytes = await signMessage(new TextEncoder().encode(challengePayload.message));
-      const signature = bs58.encode(signatureBytes);
-
-      const verifyResponse = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress,
-          nonce: challengePayload.nonce,
-          signature,
-        }),
-      });
-
-      const verifyPayload = (await verifyResponse.json()) as { ok?: boolean; error?: string };
-      if (!verifyResponse.ok || !verifyPayload.ok) {
-        throw new Error(verifyPayload.error ?? "Failed to verify wallet signature.");
-      }
+      await createWalletSession({ walletAddress, signMessage, signIn });
 
       setSuccessMessage("Wallet verified. Opening your payout workspace.");
       router.push("/pay");
@@ -104,7 +67,7 @@ export function WalletAuthPanel() {
           type="button"
           size="lg"
           className="w-full"
-          disabled={!connected || !publicKey || !signMessage || isSubmitting}
+          disabled={!connected || !publicKey || (!signMessage && !signIn) || isSubmitting}
           onClick={handleWalletSignIn}
         >
           {isSubmitting ? "Verifying wallet..." : "Sign message and continue"}
@@ -112,7 +75,7 @@ export function WalletAuthPanel() {
 
         {!connected ? (
           <p className="text-sm text-[var(--brand-muted-ink)]">
-            Supported now: Phantom and Solflare.
+            Supported now: Phantom, Solflare, and Wallet Standard wallets.
           </p>
         ) : null}
 

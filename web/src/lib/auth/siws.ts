@@ -12,6 +12,18 @@ export type SiwsChallengeParams = {
   chain?: string;
 };
 
+export type SiwsSignInInput = {
+  domain: string;
+  address: string;
+  statement: string;
+  uri: string;
+  version: "1";
+  chainId: string;
+  nonce: string;
+  issuedAt: string;
+  expirationTime: string;
+};
+
 export class SiwsMessage {
   readonly domain: string;
   readonly address: string;
@@ -51,13 +63,45 @@ export class SiwsMessage {
     return lines.join("\n");
   }
 
+  toStandardString(): string {
+    const lines = [
+      `${this.domain} wants you to sign in with your Solana account:`,
+      this.address,
+      "",
+      this.statement,
+      "",
+      `URI: ${this.uri ?? this.domain}`,
+      `Version: 1`,
+      `Chain ID: ${this.chain ?? "solana"}`,
+      `Nonce: ${this.nonce}`,
+      `Issued At: ${this.issuedAt}`,
+      `Expiration Time: ${this.expiresAt}`,
+    ];
+
+    return lines.join("\n");
+  }
+
+  toSignInInput(): SiwsSignInInput {
+    return {
+      domain: this.domain,
+      address: this.address,
+      statement: this.statement,
+      uri: this.uri ?? this.domain,
+      version: "1",
+      chainId: this.chain ?? "solana",
+      nonce: this.nonce,
+      issuedAt: this.issuedAt,
+      expirationTime: this.expiresAt,
+    };
+  }
+
   validateDomain(expectedDomain: string): boolean {
     return this.domain === expectedDomain;
   }
 
-  async verifySignature(signature: string): Promise<boolean> {
+  async verifySignature(signature: string, signedMessage?: Uint8Array): Promise<boolean> {
     try {
-      const messageBytes = new TextEncoder().encode(this.toString());
+      const messageBytes = signedMessage ?? new TextEncoder().encode(this.toString());
       const signatureBytes = bs58.decode(signature);
       const publicKeyBytes = bs58.decode(this.address);
 

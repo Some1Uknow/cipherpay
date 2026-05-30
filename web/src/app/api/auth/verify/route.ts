@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import bs58 from "bs58";
 
 import { setSessionCookie } from "@/lib/auth/cookies";
 import { getRequestMetadata, normalizeWalletAddress } from "@/lib/auth/request";
@@ -17,6 +18,7 @@ type VerifyRequestBody = {
   walletAddress?: string;
   nonce?: string;
   signature?: string;
+  signedMessage?: string;
 };
 
 export async function POST(request: Request) {
@@ -81,7 +83,25 @@ export async function POST(request: Request) {
     chain: serverConfig.solanaCluster,
   });
 
-  const verified = await siwsMessage.verifySignature(body.signature);
+  let signedMessageBytes: Uint8Array | undefined;
+  if (body.signedMessage) {
+    try {
+      signedMessageBytes = bs58.decode(body.signedMessage);
+    } catch {
+      return NextResponse.json({ error: "Invalid signed message." }, { status: 400 });
+    }
+
+    const signedMessageText = new TextDecoder().decode(signedMessageBytes);
+    const expectedLegacyMessage = siwsMessage.toString();
+    const expectedStandardMessage = siwsMessage.toStandardString();
+
+    if (!signedMessageText.includes(expectedLegacyMessage) && !signedMessageText.includes(expectedStandardMessage)) {
+      await consumeAuthNonce(authNonce.id);
+      return NextResponse.json({ error: "Signed message does not match the challenge. Request a new challenge." }, { status: 401 });
+    }
+  }
+
+  const verified = await siwsMessage.verifySignature(body.signature, signedMessageBytes);
   if (!verified) {
     await consumeAuthNonce(authNonce.id);
     return NextResponse.json({ error: "Invalid signature. Request a new challenge." }, { status: 401 });

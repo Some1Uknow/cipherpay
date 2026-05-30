@@ -33,6 +33,7 @@ export function SolanaProvider({ children }: SolanaProviderProps) {
       <WalletProvider
         wallets={wallets}
         autoConnect
+        localStorageKey="cipherpay.walletName"
         onError={(error) => {
           console.error("[wallet-adapter]", error, "cause" in error ? error.cause : undefined);
         }}

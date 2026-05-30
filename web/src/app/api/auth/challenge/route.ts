@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     expiresAt,
   });
 
-  const message = new SiwsMessage({
+  const siwsMessage = new SiwsMessage({
     domain: serverConfig.siwsDomain,
     address: walletAddress,
     statement: serverConfig.siwsStatement,
@@ -76,13 +76,14 @@ export async function POST(request: Request) {
     expiresAt: expiresAt.toISOString(),
     uri: serverConfig.appUrl,
     chain: serverConfig.solanaCluster,
-  }).toString();
+  });
 
   return NextResponse.json({
     walletAddress,
     nonce,
     issuedAt: issuedAt.toISOString(),
     expiresAt: expiresAt.toISOString(),
-    message,
+    message: siwsMessage.toString(),
+    signInInput: siwsMessage.toSignInInput(),
   });
 }

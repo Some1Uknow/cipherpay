@@ -29,7 +29,7 @@ export function WalletSignInButton({
   const router = useRouter();
 
   const { setVisible, visible } = useWalletModal();
-  const { connected, connecting, publicKey, signMessage } = useWallet();
+  const { connected, connecting, publicKey, signIn: walletSignIn, signMessage } = useWallet();
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [pendingAfterConnect, setPendingAfterConnect] = React.useState(false);
@@ -46,11 +46,15 @@ export function WalletSignInButton({
         throw new Error("Connect a supported wallet before creating a session.");
       }
 
-      if (!signMessage) {
-        throw new Error("This wallet does not expose message signing. Use Phantom or Solflare.");
+      if (!signMessage && !walletSignIn) {
+        throw new Error("This wallet does not expose message signing. Use a supported Solana wallet.");
       }
 
-      await createWalletSession({ walletAddress: publicKey.toBase58(), signMessage });
+      await createWalletSession({
+        walletAddress: publicKey.toBase58(),
+        signMessage,
+        signIn: walletSignIn,
+      });
       onStatusChange?.("success");
       router.push(target);
       router.refresh();
@@ -61,7 +65,7 @@ export function WalletSignInButton({
       setIsSubmitting(false);
       setPendingAfterConnect(false);
     }
-  }, [connected, onStatusChange, publicKey, router, signMessage, target]);
+  }, [connected, onStatusChange, publicKey, router, walletSignIn, signMessage, target]);
 
   const start = React.useCallback(async () => {
     onStatusChange?.("idle");

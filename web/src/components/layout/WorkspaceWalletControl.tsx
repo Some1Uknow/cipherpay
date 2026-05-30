@@ -124,7 +124,7 @@ export function WorkspaceWalletControl() {
   const router = useRouter();
   const { connection } = useConnection();
   const { setVisible } = useWalletModal();
-  const { connected, disconnect, publicKey, signMessage, wallet } = useWallet();
+  const { connected, disconnect, publicKey, signIn, signMessage, wallet } = useWallet();
 
   const [open, setOpen] = React.useState(false);
   const [balanceLamports, setBalanceLamports] = React.useState<number | null>(null);
@@ -220,14 +220,14 @@ export function WorkspaceWalletControl() {
   const handleUseConnectedWallet = async () => {
     setSessionError(null);
 
-    if (!walletAddress || !signMessage) {
+    if (!walletAddress || (!signMessage && !signIn)) {
       setSessionError("Connect a wallet with message signing enabled.");
       return;
     }
 
     setIsSyncingSession(true);
     try {
-      await createWalletSession({ walletAddress, signMessage });
+      await createWalletSession({ walletAddress, signMessage, signIn });
       setSessionWalletAddress(walletAddress);
       router.refresh();
     } catch (error) {

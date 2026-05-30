@@ -22,6 +22,11 @@ const navigation = [
     icon: BulkPayIcon,
   },
   {
+    href: "/agent-pay",
+    label: "Agent pay",
+    icon: AgentPayIcon,
+  },
+  {
     href: "/history",
     label: "History",
     icon: HistoryIcon,
@@ -55,6 +60,19 @@ function BulkPayIcon(props: React.SVGProps<SVGSVGElement>) {
       <path d="M6 4.5h12A2.5 2.5 0 0 1 20.5 7v10A2.5 2.5 0 0 1 18 19.5H6A2.5 2.5 0 0 1 3.5 17V7A2.5 2.5 0 0 1 6 4.5Z" />
       <path d="M7.5 11h9" />
       <path d="M7.5 15h5" />
+    </svg>
+  );
+}
+
+function AgentPayIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M8 5.5h8" />
+      <path d="M9.5 3.5 12 6l2.5-2.5" />
+      <path d="M6.5 8.5h11A2.5 2.5 0 0 1 20 11v5.5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V11a2.5 2.5 0 0 1 2.5-2.5Z" />
+      <path d="M8.5 13h.01" />
+      <path d="M15.5 13h.01" />
+      <path d="M9.5 16h5" />
     </svg>
   );
 }

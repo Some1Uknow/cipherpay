@@ -295,3 +295,21 @@ export const findSessionUserByTokenHash = async (tokenHash: string): Promise<Ses
 
   return result.rows[0] ?? null;
 };
+
+export const findUserByWalletAddress = async (walletAddress: string): Promise<{ userId: string; walletAddress: string } | null> => {
+  const db = getDb();
+  const result = await db.query<{ userId: string; walletAddress: string }>(
+    `
+      select
+        users.id as "userId",
+        wallets.wallet_address as "walletAddress"
+      from wallets
+      inner join users on users.id = wallets.user_id
+      where wallets.wallet_address = $1
+      limit 1
+    `,
+    [walletAddress],
+  );
+
+  return result.rows[0] ?? null;
+};

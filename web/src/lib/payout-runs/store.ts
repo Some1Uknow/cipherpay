@@ -5,7 +5,14 @@ import { decimalAmountToBaseUnits, sumBaseUnitAmounts } from "@/lib/cloak/amount
 import { getPrivatePayoutAsset } from "@/lib/cloak/config";
 import { quoteCloakSolWithdrawal } from "@/lib/cloak/fees";
 import { publicConfig } from "@/lib/public-config";
-import type { PersistedPayoutRun, PayoutRowDraft, PayoutRowStatus, PayoutRunEntryMode, PayoutRunStatus } from "@/lib/payout-runs/types";
+import type {
+  PersistedPayoutRun,
+  PayoutRowDraft,
+  PayoutRowStatus,
+  PayoutRunEntryMode,
+  PayoutRunSource,
+  PayoutRunStatus,
+} from "@/lib/payout-runs/types";
 import { isRowFilled, validateRows } from "@/lib/payout-runs/validation";
 
 type RunRow = {
@@ -13,6 +20,7 @@ type RunRow = {
   user_id: string;
   wallet_address: string;
   entry_mode: PayoutRunEntryMode;
+  source: PayoutRunSource | null;
   status: PayoutRunStatus;
   total_amount: string;
   payout_rail: string;
@@ -70,6 +78,7 @@ function mapRun(run: RunRow, items: ItemRow[]): PersistedPayoutRun {
     userId: run.user_id,
     walletAddress: run.wallet_address,
     entryMode: run.entry_mode,
+    source: run.source ?? "app",
     status: run.status,
     totalAmount: run.total_amount,
     payoutRail: "cloak",
@@ -240,10 +249,31 @@ export async function listPayoutRunsForUser(userId: string, limit = 10): Promise
   return runs.map((run) => mapRun(run, itemsByRun.get(run.id) ?? []));
 }
 
+export async function listMcpDraftPayoutRunsForUser(userId: string, limit = 10): Promise<PersistedPayoutRun[]> {
+  const db = getDb();
+  const runResult = await db.query<RunRow>(
+    `
+      select *
+      from payout_runs
+      where user_id = $1
+        and source = 'mcp'
+        and status in ('draft', 'ready', 'depositing', 'deposit_confirmed', 'paying', 'partially_paid', 'recoverable')
+      order by last_interacted_at desc
+      limit $2
+    `,
+    [userId, limit],
+  );
+
+  const runs = runResult.rows;
+  const itemsByRun = await getItemsForRunIds(runs.map((run) => run.id));
+  return runs.map((run) => mapRun(run, itemsByRun.get(run.id) ?? []));
+}
+
 export async function upsertDraftPayoutRun(params: {
   userId: string;
   walletAddress: string;
   entryMode: PayoutRunEntryMode;
+  source?: PayoutRunSource;
   rows: PayoutRowDraft[];
   runId?: string | null;
 }): Promise<PersistedPayoutRun> {
@@ -277,6 +307,7 @@ export async function upsertDraftPayoutRun(params: {
             cloak_relay_url = $15,
             total_fee_base_units = $16,
             total_net_base_units = $17,
+            source = coalesce($18, source),
             updated_at = now(),
             last_interacted_at = now()
           where id = $1
@@ -301,6 +332,7 @@ export async function upsertDraftPayoutRun(params: {
           publicConfig.cloakRelayUrl,
           totalFeeBaseUnits.toString(),
           totalNetBaseUnits.toString(),
+          params.source ?? null,
         ],
       );
       run = runResult.rows[0];
@@ -325,9 +357,10 @@ export async function upsertDraftPayoutRun(params: {
             cloak_program_id,
             cloak_relay_url,
             total_fee_base_units,
-            total_net_base_units
+            total_net_base_units,
+            source
           )
-          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
           returning *
         `,
         [
@@ -347,6 +380,7 @@ export async function upsertDraftPayoutRun(params: {
           publicConfig.cloakRelayUrl,
           totalFeeBaseUnits.toString(),
           totalNetBaseUnits.toString(),
+          params.source ?? "app",
         ],
       );
       run = runResult.rows[0];
@@ -543,17 +577,21 @@ export async function updatePayoutRunExecution(params: {
 export async function getPayoutRunForUser(params: {
   runId: string;
   userId: string;
+  entryMode?: PayoutRunEntryMode;
 }): Promise<PersistedPayoutRun | null> {
   const db = getDb();
+  const entryModeClause = params.entryMode ? "and entry_mode = $3" : "";
+  const bindValues = params.entryMode ? [params.runId, params.userId, params.entryMode] : [params.runId, params.userId];
   const runResult = await db.query<RunRow>(
     `
       select *
       from payout_runs
       where id = $1
         and user_id = $2
+        ${entryModeClause}
       limit 1
     `,
-    [params.runId, params.userId],
+    bindValues,
   );
 
   const run = runResult.rows[0];

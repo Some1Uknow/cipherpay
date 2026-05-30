@@ -49,6 +49,7 @@ type ServerConfig = {
   privatePayoutDefaultMinDelayMs: number;
   privatePayoutDefaultMaxDelayMs: number;
   privatePayoutRateLimitPerMinute: number;
+  mcpApiToken: string;
 };
 
 let cachedServerConfig: ServerConfig | null = null;
@@ -77,6 +78,7 @@ export const getServerConfig = (): ServerConfig => {
     privatePayoutDefaultMinDelayMs: parseIntEnv("PRIVATE_PAYOUT_DEFAULT_MIN_DELAY_MS", 0),
     privatePayoutDefaultMaxDelayMs: parseIntEnv("PRIVATE_PAYOUT_DEFAULT_MAX_DELAY_MS", 0),
     privatePayoutRateLimitPerMinute: parseIntEnv("PRIVATE_PAYOUT_RATE_LIMIT_PER_MINUTE", 30),
+    mcpApiToken: (process.env.MCP_API_TOKEN ?? "").trim(),
   };
 
   return cachedServerConfig;

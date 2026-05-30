@@ -1,5 +1,6 @@
 export type PayoutRunEntryMode = "manual" | "csv";
 export type PayoutRail = "cloak";
+export type PayoutRunSource = "app" | "mcp";
 
 export type PayoutRunStatus =
   | "draft"
@@ -51,6 +52,7 @@ export type PersistedPayoutRun = {
   userId: string;
   walletAddress: string;
   entryMode: PayoutRunEntryMode;
+  source: PayoutRunSource;
   status: PayoutRunStatus;
   totalAmount: string;
   payoutRail: PayoutRail;

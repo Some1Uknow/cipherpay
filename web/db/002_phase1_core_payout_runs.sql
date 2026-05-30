@@ -3,6 +3,7 @@ create table if not exists payout_runs (
   user_id uuid not null references users(id) on delete cascade,
   wallet_address text not null,
   entry_mode text not null check (entry_mode in ('manual', 'csv')),
+  source text not null default 'app' check (source in ('app', 'mcp')),
   status text not null check (status in ('draft', 'ready', 'submitting', 'submitted', 'failed', 'completed')),
   total_amount numeric(20, 2) not null default 0,
   item_count integer not null default 0 check (item_count >= 0),
@@ -14,6 +15,7 @@ create table if not exists payout_runs (
 
 create index if not exists payout_runs_user_recent_idx on payout_runs(user_id, last_interacted_at desc);
 create index if not exists payout_runs_status_idx on payout_runs(user_id, status, last_interacted_at desc);
+create index if not exists payout_runs_source_status_idx on payout_runs(user_id, source, status, last_interacted_at desc);
 
 create table if not exists payout_run_items (
   id uuid primary key default gen_random_uuid(),

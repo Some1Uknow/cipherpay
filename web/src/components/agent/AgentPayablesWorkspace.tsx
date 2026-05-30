@@ -20,7 +20,7 @@ function mcpConfig(walletAddress: string) {
       "args": ["--dir", "<path-to-cipherpay-repo>/web", "mcp:cipherpay"],
       "env": {
         "CIPHERPAY_APP_URL": "${appUrl}",
-        "CIPHERPAY_MCP_TOKEN": "your-mcp-token",
+        "CIPHERPAY_MCP_TOKEN": "<same-value-as-MCP_API_TOKEN>",
         "CIPHERPAY_WALLET_ADDRESS": "${walletAddress}"
       }
     }
@@ -64,6 +64,14 @@ export function AgentPayablesWorkspace({
             <p className="mt-1 text-sm leading-6 text-[var(--brand-muted-ink)]">
               AI can create drafts. Wallet approval still happens in CipherPay.
             </p>
+            <p className="mt-3 text-sm leading-6 text-[var(--brand-muted-ink)]">
+              Token setup: generate a secret, set it as <span className="font-mono">MCP_API_TOKEN</span> in <span className="font-mono">web/.env.local</span>,
+              then set <span className="font-mono">CIPHERPAY_MCP_TOKEN</span> in your MCP client to the same value.
+            </p>
+            <div className="mt-3 grid gap-2">
+              <CodeBlock code={`openssl rand -hex 32`} />
+              <CodeBlock code={`MCP_API_TOKEN=replace-with-your-32+char-random-secret`} />
+            </div>
             <p className="mt-3 font-mono text-xs text-[var(--brand-muted-ink)]">
               Funding wallet: {shortWallet(walletAddress)}
             </p>

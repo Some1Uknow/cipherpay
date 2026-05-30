@@ -12,7 +12,7 @@ const mcpConfig = `{
       "args": ["--dir", "<path-to-cipherpay-repo>/web", "mcp:cipherpay"],
       "env": {
         "CIPHERPAY_APP_URL": "http://localhost:3000",
-        "CIPHERPAY_MCP_TOKEN": "replace-with-your-token",
+        "CIPHERPAY_MCP_TOKEN": "<same-value-as-MCP_API_TOKEN>",
         "CIPHERPAY_WALLET_ADDRESS": "your-signed-in-funding-wallet"
       }
     }
@@ -134,10 +134,19 @@ Ava Patel,9B3Y2dXhN6LQW8dyL5o6z8UZqv2q1X3dQ5bTA2sQkz4J,0.01`}
 
           <Section id="mcp-agent" title="MCP Agent">
             <p>
-              The MCP server lets an AI client create real CipherPay payout drafts. Add `MCP_API_TOKEN` to `web/.env.local`,
-              run the app, then configure your MCP client.
+              The MCP server lets an AI client create real CipherPay payout drafts. The “MCP token” is just a shared secret that
+              you generate locally.
             </p>
-            <CodeBlock code={`MCP_API_TOKEN=replace-with-a-long-random-secret`} />
+            <p>Generate a token (example):</p>
+            <CodeBlock code={`openssl rand -hex 32`} />
+            <p>
+              Set it in `web/.env.local` as `MCP_API_TOKEN` (this authorizes requests to `/api/mcp/payout-drafts`). Restart the dev
+              server after changing env.
+            </p>
+            <CodeBlock code={`MCP_API_TOKEN=replace-with-your-32+char-random-secret`} />
+            <p>
+              In your MCP client config, set `CIPHERPAY_MCP_TOKEN` to the exact same value as `MCP_API_TOKEN`.
+            </p>
             <CodeBlock code={mcpConfig} />
             <p>Example prompt:</p>
             <CodeBlock code={aiPrompt} />

@@ -41,8 +41,8 @@ flowchart TB
 
   subgraph Solana[Solana]
     RPC[Solana RPC]
-    CLOAK[Cloak Program\nZK shielded pool]
-    RELAY[Cloak Relay\nproof + submit]
+    CLOAK[Program\nZK shielded pool]
+    RELAY[Relay\nproof + submit]
     CP[CipherPay Program\n(receipts + manifest hash)]
   end
 

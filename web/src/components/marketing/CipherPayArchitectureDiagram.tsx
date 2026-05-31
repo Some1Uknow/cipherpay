@@ -149,9 +149,9 @@ const diagramLogos = {
       <Image src="/logo/diagram/postgres.svg" alt="Postgres" width={28} height={28} className="h-7 w-7" />
     </LogoBadge>
   ),
-  cloak: (
+  shieldedPool: (
     <LogoBadge>
-      <Image src="/logo/diagram/cloak.png" alt="Cloak" width={28} height={28} className="h-7 w-7" />
+      <Image src="/logo/diagram/key.svg" alt="ZK shielded pool" width={28} height={28} className="h-7 w-7" />
     </LogoBadge>
   ),
   shieldedSol: (
@@ -252,14 +252,14 @@ const desktopNodes: Node<ArchitectureNodeData>[] = [
     sourcePosition: Position.Right,
   },
   {
-    id: "cloak",
+    id: "shielded-pool",
     type: "architecture",
     position: { x: 700, y: 58 },
     data: {
-      title: "Cloak",
-      body: "Coordinates shielded payouts.",
+      title: "ZK shielded pool",
+      body: "Verifies deposits, roots, and nullifiers.",
       tone: "green",
-      logo: diagramLogos.cloak,
+      logo: diagramLogos.shieldedPool,
     },
     draggable: false,
     selectable: false,
@@ -368,9 +368,9 @@ const desktopEdges: Edge<{ tone: "primary" | "settle" | "evidence"; particle?: b
     targetHandle: "t",
   },
   {
-    id: "state-cloak",
+    id: "state-shielded-pool",
     source: "state",
-    target: "cloak",
+    target: "shielded-pool",
     type: "flow",
     data: { tone: "settle", particle: true },
     markerEnd: { type: MarkerType.ArrowClosed, color: edgeColors.settle, width: 12, height: 12 },
@@ -378,8 +378,8 @@ const desktopEdges: Edge<{ tone: "primary" | "settle" | "evidence"; particle?: b
     targetHandle: "l",
   },
   {
-    id: "cloak-wsol",
-    source: "cloak",
+    id: "shielded-pool-wsol",
+    source: "shielded-pool",
     target: "wsol",
     type: "flow",
     data: { tone: "settle" },
@@ -418,8 +418,8 @@ const desktopEdges: Edge<{ tone: "primary" | "settle" | "evidence"; particle?: b
     targetHandle: "l",
   },
   {
-    id: "cloak-receipts",
-    source: "cloak",
+    id: "shielded-pool-receipts",
+    source: "shielded-pool",
     target: "receipts",
     type: "flow",
     data: { tone: "evidence" },
@@ -485,14 +485,14 @@ const mobileNodes: Node<ArchitectureNodeData>[] = [
     sourcePosition: Position.Bottom,
   },
   {
-    id: "m-cloak",
+    id: "m-shielded-pool",
     type: "architecture",
     position: { x: 20, y: 392 },
     data: {
-      title: "Cloak",
-      body: "Coordinates shielded payouts.",
+      title: "ZK shielded pool",
+      body: "Verifies roots and nullifiers.",
       tone: "green",
-      logo: diagramLogos.cloak,
+      logo: diagramLogos.shieldedPool,
     },
     draggable: false,
     selectable: false,
@@ -548,16 +548,16 @@ const mobileEdges: Edge<{ tone: "primary" | "settle" | "evidence"; particle?: bo
     markerEnd: { type: MarkerType.ArrowClosed, color: edgeColors.primary, width: 14, height: 14 },
   },
   {
-    id: "m-run-cloak",
+    id: "m-run-shielded-pool",
     source: "m-run",
-    target: "m-cloak",
+    target: "m-shielded-pool",
     type: "flow",
     data: { tone: "settle", particle: true },
     markerEnd: { type: MarkerType.ArrowClosed, color: edgeColors.settle, width: 14, height: 14 },
   },
   {
-    id: "m-cloak-transfer",
-    source: "m-cloak",
+    id: "m-shielded-pool-transfer",
+    source: "m-shielded-pool",
     target: "m-transfer",
     type: "flow",
     data: { tone: "settle", particle: true },

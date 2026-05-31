@@ -60,7 +60,12 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
               </div>
             </Link>
 
-            <div className="shrink-0">
+            <div className="flex shrink-0 items-center gap-2">
+              <Link href="/docs">
+                <Button variant="ghost" size="sm">
+                  Docs
+                </Button>
+              </Link>
               <WalletSignInButton variant="secondary" size="sm" nextPath={nextPath}>
                 Sign in
               </WalletSignInButton>
@@ -126,7 +131,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
           <div className="mt-6 grid gap-3 lg:grid-cols-3">
             {[
               ["Control plane", "Browser, Next.js routes, API validation, and Postgres state stay on the review side."],
-              ["Settlement rail", "SOL deposits into Cloak, then manual pay uses one withdrawal while bulk pay chains row withdrawals through change UTXOs."],
+              ["Settlement rail", "SOL deposits into a ZK shielded pool, then manual pay uses one withdrawal while bulk pay chains row withdrawals through change UTXOs."],
               ["Evidence", "Deposit signatures, row withdraw signatures, recovery state, and retry state flow back into history."],
             ].map(([k, v]) => (
               <div key={k} className="rounded-[24px] bg-[var(--brand-surface)] p-4 shadow-neoInsetSm">

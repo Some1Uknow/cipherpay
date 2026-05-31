@@ -41,8 +41,8 @@ flowchart TB
 
   subgraph Solana[Solana]
     RPC[Solana RPC]
-    CLOAK["Cloak Program<br/>ZK shielded pool"]
-    RELAY["Cloak Relay<br/>proof + submit"]
+    POOL["ZK Shielded Pool<br/>commitments + nullifiers"]
+    RELAY["Proof Relay<br/>proof + submit"]
     CP["CipherPay Program<br/>(receipts + manifest hash)"]
   end
 
@@ -52,7 +52,7 @@ flowchart TB
   WALLET --> RPC
   UI --> RELAY
   RELAY --> RPC
-  RPC --> CLOAK
+  RPC --> POOL
   RPC --> CP
 ```
 
@@ -182,7 +182,7 @@ Repo surface area (useful for judging engineering depth):
 - **Web app:** ~8.7k TS/TSX LOC
 - **Rust program/tests:** ~1.9k LOC
 - **SQL migrations:** ~349 LOC
-- **Payment rail implementation:** deposit + batch payroll + Merkle cache + ALT support
+- **Payment rail implementation:** shielded deposits + batch payroll + Merkle cache + UTXO recovery
 - **API routes:** 7 Next.js route handlers under `web/src/app/api/**/route.ts`
 - **Anchor instruction modules:** 10 files under `programs/cipherpay/src/instructions/`
 
@@ -225,7 +225,7 @@ For the private payout rail (defaults are in `web/.env.example`):
 ```bash
 cd web
 pnpm install
-pnpm db:migrate:
+pnpm db:migrate:private-rail
 pnpm db:migrate:agent-pay
 ```
 

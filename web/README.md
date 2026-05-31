@@ -15,12 +15,12 @@ Create `web/.env.local` from `.env.example`. Required local values include:
 - `DATABASE_URL`
 - `SESSION_SIGNING_SECRET`
 - `INVOICE_ENCRYPTION_KEY`
-- Cloak private payout config from `.env.example`
+- ZK shielded-pool private payout config from `.env.example`
 
-Apply the Cloak private payout migration:
+Apply the shielded-pool private payout migration:
 
 ```bash
-pnpm db:migrate:cloak
+pnpm db:migrate:private-rail
 pnpm db:migrate:agent-pay
 pnpm db:migrate:payables
 ```
@@ -97,15 +97,6 @@ npx jest
 
 ## Private Payout Rail
 
-The default payout rail is:
+The default private payout rail is a ZK shielded pool for SOL. Configure the payout rail, shielded-pool program id, proof relay URL, payout symbol, mint, and decimals from `.env.example`.
 
-```text
-NEXT_PUBLIC_PAYOUT_RAIL=cloak
-NEXT_PUBLIC_CLOAK_PROGRAM_ID=Zc1kHfp4rajSMeASFDwFFgkHRjv7dFQuLheJoQus27h
-NEXT_PUBLIC_CLOAK_RELAY_URL=https://api.devnet.cloak.ag
-NEXT_PUBLIC_PRIVATE_PAYOUT_SYMBOL=SOL
-NEXT_PUBLIC_PRIVATE_PAYOUT_MINT=So11111111111111111111111111111111111111112
-NEXT_PUBLIC_PRIVATE_PAYOUT_DECIMALS=9
-```
-
-The browser never signs server-side. Cloak execution will be wired in the manual and bulk send phases; payout run APIs persist draft, progress, row status, and receipt metadata.
+The browser never signs server-side. Private payout execution runs from the connected wallet; payout run APIs persist draft, progress, row status, UTXO recovery state, and receipt metadata.

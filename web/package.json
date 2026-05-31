@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "db:migrate:cloak": "node scripts/apply-db-migration.mjs db/004_cloak_private_payouts.sql",
+    "db:migrate:private-rail": "node scripts/apply-db-migration.mjs db/004_cloak_private_payouts.sql",
     "db:migrate:agent-pay": "node scripts/apply-db-migration.mjs db/005_agent_pay_drafts.sql",
     "db:migrate:payables": "node scripts/apply-db-migration.mjs db/006_payables.sql",
     "db:migrate:private-balances": "node scripts/apply-db-migration.mjs db/007_private_payout_balances.sql",

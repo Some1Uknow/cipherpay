@@ -141,6 +141,15 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
 
   return (
     <main className="bg-[var(--brand-surface)] text-[var(--brand-ink)]">
+      <div className="w-full bg-[#071B4D] text-white">
+        <div
+          className="mx-auto max-w-7xl px-6 py-1 text-center font-mono text-xs sm:px-8 lg:px-10"
+          style={{ fontFamily: "Consolas, ui-monospace, SFMono-Regular, Menlo, Monaco, 'Liberation Mono', 'Courier New', monospace" }}
+        >
+          Live on Mainnet 🎉
+        </div>
+      </div>
+
       {/* HERO (structure inspired by base-home.png) */}
       <section className="relative overflow-hidden" id="product">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(14,91,255,0.14),transparent_48%),radial-gradient(circle_at_top_left,rgba(14,91,255,0.10),transparent_46%)]" />

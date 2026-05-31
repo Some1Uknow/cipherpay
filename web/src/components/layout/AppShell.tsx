@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WorkspaceWalletControl } from "@/components/layout/WorkspaceWalletControl";
 import { cn } from "@/lib/utils";
@@ -112,18 +111,8 @@ function ChevronIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-function usePageMeta(pathname: string) {
-  const activeItem =
-    navigation.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`)) ?? navigation[0];
-
-  return {
-    label: activeItem.label,
-  };
-}
-
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { label } = usePageMeta(pathname);
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
@@ -184,16 +173,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             </div>
 
-            <div className="hidden min-w-0 items-center gap-3 lg:flex">
-              <Badge tone="blue" className="h-10 px-4 shadow-neoInsetSm">
-                Devnet
-              </Badge>
-            </div>
-
             <div className="flex items-center gap-2">
-              <Badge tone="blue" className="hidden h-10 px-4 shadow-neoInsetSm sm:inline-flex lg:hidden">
-                {label}
-              </Badge>
               <WorkspaceWalletControl />
             </div>
           </div>

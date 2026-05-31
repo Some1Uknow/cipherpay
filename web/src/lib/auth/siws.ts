@@ -26,10 +26,11 @@ export type SiwsSignInInput = {
 
 export function normalizeSiwsChainId(cluster: string): string {
   const normalized = cluster.trim().toLowerCase();
-  if (normalized === "mainnet-beta" || normalized === "mainnet") return "mainnet";
-  if (normalized === "devnet") return "devnet";
-  if (normalized === "testnet") return "testnet";
-  if (normalized === "localnet" || normalized === "localhost") return "localnet";
+  if (normalized.startsWith("solana:")) return normalized;
+  if (normalized === "mainnet-beta" || normalized === "mainnet") return "solana:mainnet";
+  if (normalized === "devnet") return "solana:devnet";
+  if (normalized === "testnet") return "solana:testnet";
+  if (normalized === "localnet" || normalized === "localhost") return "solana:localnet";
   return normalized;
 }
 

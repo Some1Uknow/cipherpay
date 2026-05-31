@@ -36,6 +36,7 @@ export function WalletSignInButton({
   const didAutoStartRef = React.useRef(false);
 
   const target = nextPath && nextPath.startsWith("/") ? nextPath : redirectTo;
+  const hasSigningCapability = Boolean(signMessage || walletSignIn);
 
   const signIn = React.useCallback(async () => {
     onStatusChange?.("signing");
@@ -46,7 +47,7 @@ export function WalletSignInButton({
         throw new Error("Connect a supported wallet before creating a session.");
       }
 
-      if (!signMessage && !walletSignIn) {
+      if (!hasSigningCapability) {
         throw new Error("This wallet does not expose message signing. Use a supported Solana wallet.");
       }
 
@@ -65,12 +66,18 @@ export function WalletSignInButton({
       setIsSubmitting(false);
       setPendingAfterConnect(false);
     }
-  }, [connected, onStatusChange, publicKey, router, walletSignIn, signMessage, target]);
+  }, [connected, hasSigningCapability, onStatusChange, publicKey, router, walletSignIn, signMessage, target]);
 
   const start = React.useCallback(async () => {
     onStatusChange?.("idle");
 
     if (connected && publicKey) {
+      if (!hasSigningCapability) {
+        onStatusChange?.("connecting");
+        setPendingAfterConnect(true);
+        return;
+      }
+
       await signIn();
       return;
     }
@@ -78,18 +85,35 @@ export function WalletSignInButton({
     onStatusChange?.("connecting");
     setPendingAfterConnect(true);
     setVisible(true);
-  }, [connected, onStatusChange, publicKey, setVisible, signIn]);
+  }, [connected, hasSigningCapability, onStatusChange, publicKey, setVisible, signIn]);
 
   React.useEffect(() => {
     if (!pendingAfterConnect) return;
     if (isSubmitting) return;
     if (!connected || !publicKey) return;
+    if (!hasSigningCapability) return;
 
     void signIn().catch((error) => {
       const message = error instanceof Error ? error.message : "Wallet sign-in failed.";
       onSignInError?.(message);
     });
-  }, [connected, isSubmitting, onSignInError, pendingAfterConnect, publicKey, signIn]);
+  }, [connected, hasSigningCapability, isSubmitting, onSignInError, pendingAfterConnect, publicKey, signIn]);
+
+  React.useEffect(() => {
+    if (!pendingAfterConnect) return;
+    if (!connected || !publicKey) return;
+    if (hasSigningCapability) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setPendingAfterConnect(false);
+      onStatusChange?.("error");
+      onSignInError?.("This wallet does not expose message signing. Use a supported Solana wallet.");
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [connected, hasSigningCapability, onSignInError, onStatusChange, pendingAfterConnect, publicKey]);
 
   React.useEffect(() => {
     if (!pendingAfterConnect) return;

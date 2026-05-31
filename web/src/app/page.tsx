@@ -17,7 +17,7 @@ function StatIcon({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-neoInsetSm">
+    <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[var(--brand-surface)] shadow-neoInsetSm">
       {children}
     </div>
   );
@@ -228,22 +228,9 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
             <CipherPayArchitectureDiagram />
           </div>
 
-          <div className="mt-6 grid gap-3 lg:grid-cols-3">
-            {[
-              ["Control plane", "Browser, Next.js routes, API validation, and Postgres state stay on the review side."],
-              ["Settlement rail", "SOL deposits into a ZK shielded pool, then manual pay uses one withdrawal while bulk pay chains row withdrawals through change UTXOs."],
-              ["Evidence", "Deposit signatures, row withdraw signatures, recovery state, and retry state flow back into history."],
-            ].map(([k, v]) => (
-              <div key={k} className="rounded-[24px] bg-[var(--brand-surface)] p-4 shadow-neoInsetSm">
-                <p className="text-sm font-semibold text-[var(--brand-ink)]">{k}</p>
-                <p className="mt-1 text-sm leading-7 text-[var(--brand-muted-ink)]">{v}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 grid gap-4 lg:grid-cols-3">
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
             {architectureStats.map((item) => (
-              <div key={item.label} className="flex items-start gap-4 rounded-[24px] border border-white/80 bg-white/88 p-5 shadow-[0_18px_36px_rgba(148,163,184,0.10)]">
+              <div key={item.label} className="flex items-start gap-4 rounded-[24px] bg-[var(--brand-surface)] p-5 shadow-neoInsetSm">
                 {item.icon}
                 <div className="min-w-0">
                   <p className="text-3xl font-semibold tracking-[-0.06em] text-[var(--brand-ink-deep)]">{item.value}</p>

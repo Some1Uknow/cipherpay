@@ -21,7 +21,7 @@ CipherPay is a private payroll + payout workspace for Solana.
 ---
 
 ## Architecture (end-to-end)
-k
+
 ```mermaid
 flowchart TB
   subgraph Browser["Browser"]
@@ -74,7 +74,6 @@ CipherPay’s privacy rail is deliberately “deposit once, pay many”.
 
 - Generate a private **deposit proof** for the payment amount.
 - After the relay indexes the deposit, generate a private **withdraw proof** to the recipient.
-```
 
 ### Bulk pay (batch payroll)
 

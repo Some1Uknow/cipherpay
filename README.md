@@ -22,6 +22,8 @@ CipherPay is a private payroll + payout workspace for Solana.
 
 ## Architecture (end-to-end)
 
+![CipherPay architecture UI](web/public/ai_pay.png)
+
 ```mermaid
 flowchart TB
   subgraph Browser[Browser]
@@ -64,6 +66,8 @@ CipherPay’s privacy rail is deliberately “deposit once, pay many”.
 
 ### Manual pay (single recipient)
 
+![Manual pay flow](web/public/singe_pay.png)
+
 - Generate a private **deposit proof** for the payment amount.
 - After the relay indexes the deposit, generate a private **withdraw proof** to the recipient.
 
@@ -92,6 +96,8 @@ sequenceDiagram
 ```
 
 ### Bulk pay (batch payroll)
+
+![Bulk pay flow](web/public/bulk_pay.png)
 
 - Create **one** private deposit for the batch total.
 - Execute sequential private `partialWithdraw` per row; the **change UTXO** becomes the input to the next row.
@@ -145,6 +151,8 @@ sequenceDiagram
 ---
 
 ## Agent integration (MCP) — “AI drafts, humans approve”
+
+![Agent pay drafts](web/public/ai_pay.png)
 
 CipherPay includes a local stdio **MCP server** that can create a *real* payout draft, but cannot execute payouts.
 

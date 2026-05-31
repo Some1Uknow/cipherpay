@@ -67,6 +67,7 @@ export default function DocsPage() {
               ["Payment Flow", "#payment-flow"],
               ["Manual Pay", "#manual-pay"],
               ["Bulk Pay", "#bulk-pay"],
+              ["Payables", "#payables"],
               ["MCP Agent", "#mcp-agent"],
               ["Security", "#security"],
             ].map(([label, href]) => (
@@ -131,6 +132,13 @@ export default function DocsPage() {
 Ava Patel,9B3Y2dXhN6LQW8dyL5o6z8UZqv2q1X3dQ5bTA2sQkz4J,0.01`}
            />
          </Section>
+
+          <Section id="payables" title="Payables">
+            <p>
+              Use `Payables` for recurring recipients. Add a recipient, wallet, amount, cadence, and next due date. When
+              a payable is due, select it and create a bulk draft. CipherPay opens the exact `/bulk-pay?runId=...` run for approval.
+            </p>
+          </Section>
 
           <Section id="mcp-agent" title="MCP Agent">
             <p>

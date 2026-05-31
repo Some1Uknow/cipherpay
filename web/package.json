@@ -7,6 +7,7 @@
     "build": "next build",
     "db:migrate:cloak": "node scripts/apply-db-migration.mjs db/004_cloak_private_payouts.sql",
     "db:migrate:agent-pay": "node scripts/apply-db-migration.mjs db/005_agent_pay_drafts.sql",
+    "db:migrate:payables": "node scripts/apply-db-migration.mjs db/006_payables.sql",
     "mcp:cipherpay": "node scripts/cipherpay-mcp.mjs",
     "start": "next start",
     "lint": "next lint",

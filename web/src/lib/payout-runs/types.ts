@@ -1,6 +1,6 @@
 export type PayoutRunEntryMode = "manual" | "csv";
 export type PayoutRail = "cloak";
-export type PayoutRunSource = "app" | "mcp";
+export type PayoutRunSource = "app" | "mcp" | "payables";
 
 export type PayoutRunStatus =
   | "draft"

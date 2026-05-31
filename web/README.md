@@ -22,6 +22,7 @@ Apply the Cloak private payout migration:
 ```bash
 pnpm db:migrate:cloak
 pnpm db:migrate:agent-pay
+pnpm db:migrate:payables
 ```
 
 The migration is idempotent and records applied files in `schema_migrations`.
@@ -76,6 +77,10 @@ Available tools:
 - `draft_payment_from_instructions`: parses text and creates a real draft in one call.
 
 The funding wallet must sign into CipherPay once before the MCP server can create drafts for that user. Created drafts return an approval URL such as `/bulk-pay?runId=...` and also appear in the Agent Pay draft list.
+
+## Payables
+
+The `/payables` page stores recurring recipients with cadence and due dates. Due payables can be selected and converted into a standard bulk approval draft at `/bulk-pay?runId=...`.
 
 ## Checks
 

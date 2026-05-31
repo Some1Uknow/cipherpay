@@ -40,10 +40,11 @@ export function serializeDraft(mode: string, rows: PayoutRowDraft[]): string {
 
 export function validateRows(
   rows: PayoutRowDraft[],
-  options: { symbol?: string; decimals?: number } = {},
+  options: { symbol?: string; decimals?: number; minimumAmount?: number } = {},
 ): PayoutRowIssue[] {
   const symbol = options.symbol ?? "USDC";
   const decimals = options.decimals ?? 2;
+  const minimumAmount = options.minimumAmount;
   const duplicates = new Set<string>();
   const seen = new Set<string>();
 
@@ -79,6 +80,8 @@ export function validateRows(
         issues.amount = "Use a number like 1250 or 1250.50.";
       } else if (normalized <= 0) {
         issues.amount = "Amount must be greater than zero.";
+      } else if (minimumAmount !== undefined && normalized < minimumAmount) {
+        issues.amount = `Minimum private ${symbol} payout is ${minimumAmount} ${symbol}.`;
       } else if (!new RegExp(`^\\d+(\\.\\d{1,${decimals}})?$`).test(row.amount.trim())) {
         issues.amount = `Use up to ${decimals} decimal places for ${symbol}.`;
       }

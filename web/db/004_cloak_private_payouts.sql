@@ -12,7 +12,9 @@ alter table payout_runs
   add column if not exists total_fee_base_units numeric(40, 0),
   add column if not exists total_net_base_units numeric(40, 0),
   add column if not exists current_change_utxo_commitment text,
-  add column if not exists recovery_state text;
+  add column if not exists recovery_state text,
+  add column if not exists private_balance_before numeric(40, 0),
+  add column if not exists private_balance_after numeric(40, 0);
 
 alter table payout_run_items
   add column if not exists amount_base_units numeric(40, 0),

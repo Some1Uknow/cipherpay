@@ -130,6 +130,7 @@ function summarizeRows(rows: PayoutRowDraft[]) {
   const issues = validateRows(filledRows, {
     symbol: asset.symbol,
     decimals: asset.decimals,
+    minimumAmount: asset.symbol === "SOL" ? 0.01 : undefined,
   });
   const validQuotes = filledRows.map((row, index) => {
     if (Object.keys(issues[index] ?? {}).length > 0) return null;
@@ -404,6 +405,7 @@ export async function upsertDraftPayoutRun(params: {
         const rowIssues = validateRows([row], {
           symbol: asset.symbol,
           decimals: asset.decimals,
+          minimumAmount: asset.symbol === "SOL" ? 0.01 : undefined,
         })[0];
         const isReady = Object.keys(rowIssues ?? {}).length === 0;
         const quote = isReady ? quoteRowAmount(row.amount, asset.decimals, asset.symbol) : null;

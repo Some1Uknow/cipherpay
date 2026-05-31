@@ -390,6 +390,7 @@ export function PayoutRunWorkspace({
   const issues = validateRows(rowsToPersist, {
     symbol: privateAsset.symbol,
     decimals: privateAsset.decimals,
+    minimumAmount: privateAsset.symbol === "SOL" ? 0.01 : undefined,
   });
   const validCount = issues.filter((issue) => Object.keys(issue).length === 0).length;
   const invalidCount = issues.length - validCount;

@@ -73,7 +73,11 @@ function validatePayableDraft(params: CreatePayableParams) {
     walletAddress: params.walletAddress.trim(),
     amount: params.amount.trim(),
   };
-  const issues = validateRows([row], { symbol: asset.symbol, decimals: asset.decimals })[0];
+  const issues = validateRows([row], {
+    symbol: asset.symbol,
+    decimals: asset.decimals,
+    minimumAmount: asset.symbol === "SOL" ? 0.01 : undefined,
+  })[0];
   const issueValues = Object.values(issues ?? {}).filter(Boolean);
   if (issueValues.length > 0) {
     throw new Error(issueValues[0]);

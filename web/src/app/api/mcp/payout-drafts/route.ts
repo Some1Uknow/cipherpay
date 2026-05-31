@@ -91,7 +91,11 @@ export async function POST(request: Request) {
   }));
 
   const asset = getPrivatePayoutAsset();
-  const issues = validateRows(rows, { symbol: asset.symbol, decimals: asset.decimals });
+  const issues = validateRows(rows, {
+    symbol: asset.symbol,
+    decimals: asset.decimals,
+    minimumAmount: asset.symbol === "SOL" ? 0.01 : undefined,
+  });
   const blockingIssues = issues
     .map((issue, index): { index: number; issue: PayoutRowIssue } => ({ index, issue }))
     .filter(({ issue }) => Object.keys(issue).length > 0);

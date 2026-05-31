@@ -21,41 +21,45 @@ CipherPay is a private payroll + payout workspace for Solana.
 ---
 
 ## Architecture (end-to-end)
-
-![CipherPay architecture UI](web/public/ai_pay.png)
-
+k
 ```mermaid
 flowchart TB
-  subgraph Browser[Browser]
-    UI[Next.js UI: /pay, /bulk-pay]
-    WALLET["Wallet Adapter<br/>(Phantom/Solflare/Backpack)"]
+  subgraph Browser["Browser"]
+    UI["CipherPay UI<br/>/pay /bulk-pay /agent-pay"]
+    WALLET["Wallet Adapter<br/>Phantom / Solflare / Backpack"]
   end
 
-  subgraph App[Next.js Server]
-    API["API Routes<br/>/auth/*, /payout-runs, /mcp/payout-drafts"]
+  subgraph App["Next.js App"]
     AUTH["SIWS Auth<br/>challenge + verify"]
-    RUNS["Payout Run Store<br/>status + row state"]
+    API["API Routes<br/>drafts, runs, MCP"]
+    RUNS["Payout Run State<br/>status, rows, recovery"]
   end
 
-  subgraph Data[Data]
+  subgraph Data["Data"]
     PG[(Postgres)]
   end
 
-  subgraph Solana[Solana]
-    RPC[Solana RPC]
-    POOL["ZK Shielded Pool<br/>commitments + nullifiers"]
-    RELAY["Proof Relay<br/>proof + submit"]
-    CP["CipherPay Program<br/>(receipts + manifest hash)"]
+  subgraph Solana["Solana"]
+    RPC["Solana RPC"]
+    RELAY["Proof Relay<br/>proof generation + submit"]
+    POOL["ZK Shielded Pool<br/>commitments, roots, nullifiers"]
+    CP["CipherPay Program<br/>receipts + manifest hash"]
   end
 
+  UI --> AUTH
+  AUTH --> PG
   UI --> API
-  API --> PG
+  API --> RUNS
+  RUNS --> PG
+
   UI <--> WALLET
-  WALLET --> RPC
-  UI --> RELAY
+  WALLET --> RELAY
   RELAY --> RPC
   RPC --> POOL
   RPC --> CP
+
+  RELAY --> RUNS
+  CP --> RUNS
 ```
 
 ---
@@ -70,29 +74,6 @@ CipherPay’s privacy rail is deliberately “deposit once, pay many”.
 
 - Generate a private **deposit proof** for the payment amount.
 - After the relay indexes the deposit, generate a private **withdraw proof** to the recipient.
-
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant W as Wallet
-  participant UI as CipherPay UI
-  participant R as Relay
-  participant C as Program
-  participant DB as Postgres
-
-  U->>UI: Draft payment
-  UI->>DB: Persist payout_run (draft/ready)
-  U->>W: Approve private deposit tx
-  W->>R: transact(deposit)
-  R->>C: submit deposit
-  R-->>UI: deposit signature + merkle tree
-  UI->>DB: Save deposit signature + commitment
-  Note over UI,R: Default withdraw retry window: 3 attempts
-  U->>W: Approve private withdraw tx
-  W->>R: fullWithdraw
-  R->>C: submit withdraw
-  R-->>UI: withdraw signature
-  UI->>DB: Mark run completed
 ```
 
 ### Bulk pay (batch payroll)
@@ -103,28 +84,6 @@ sequenceDiagram
 - Execute sequential private `partialWithdraw` per row; the **change UTXO** becomes the input to the next row.
 
 This is what enables clean recovery: the run can persist `current_change_utxo_commitment` and row status (`queued/paying/paid_private/failed`).
-
-```mermaid
-sequenceDiagram
-  participant UI as CipherPay UI
-  participant R as Relay
-  participant DB as Postgres
-
-  UI->>R: transact(deposit total)
-  R-->>UI: deposit signature + output UTXO
-  UI->>DB: status=deposit_confirmed, rows=queued
-
-  loop For each row
-    UI->>DB: row=paying
-    UI->>R: partialWithdraw(changeUTXO -> recipient)
-    alt confirmed
-      R-->>UI: signature + new changeUTXO
-      UI->>DB: row=paid_private, update changeUTXO commitment
-    else failed
-      UI->>DB: row=failed, run=recoverable/partially_paid
-    end
-  end
-```
 
 ---
 
@@ -154,23 +113,7 @@ sequenceDiagram
 
 ![Agent pay drafts](web/public/ai_pay.png)
 
-CipherPay includes a local stdio **MCP server** that can create a *real* payout draft, but cannot execute payouts.
-
-```mermaid
-sequenceDiagram
-  participant L as LLM Client
-  participant MCP as cipherpay MCP server (local)
-  participant API as Next.js API
-  participant DB as Postgres
-  participant U as User
-
-  L->>MCP: draft_payment_from_instructions
-  MCP->>API: POST /api/mcp/payout-drafts (token-auth)
-  API->>DB: Create payout_run source=mcp
-  API-->>MCP: approval URL (/bulk-pay?runId=...)
-  MCP-->>L: Return approval URL + draft summary
-  U->>API: Opens draft in UI, connects wallet, executes
-```
+CipherPay includes a **MCP server** that can create a *real* payout draft which can be approved and signed by user then.
 
 **Auth model:** the app uses Sign-In With Solana (SIWS) for session creation; the MCP endpoint uses a bearer token (`MCP_API_TOKEN`) to avoid ambient access.
 
@@ -185,7 +128,7 @@ Operational limits & constants:
 - **Bulk private transfer retry:** **2** stale-root retries per row (refresh Merkle state).
 - **Relay settle delay:** 4,000 ms between bulk rows (gives the relay time to index and prevents “stale root” cascades).
 
-Repo surface area (useful for judging engineering depth):
+Repo:
 
 - **Web app:** ~8.7k TS/TSX LOC
 - **Rust program/tests:** ~1.9k LOC

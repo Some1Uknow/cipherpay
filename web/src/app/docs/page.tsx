@@ -63,13 +63,13 @@ export default function DocsPage() {
         <aside className="hidden lg:block">
           <nav className="sticky top-24 grid gap-1 text-sm font-semibold">
             {[
-              ["Overview", "#overview"],
-              ["Payment Flow", "#payment-flow"],
-              ["Manual Pay", "#manual-pay"],
-              ["Bulk Pay", "#bulk-pay"],
-              ["Payables", "#payables"],
-              ["MCP Agent", "#mcp-agent"],
-              ["Security", "#security"],
+              ["Start here", "#overview"],
+              ["How it works", "#payment-flow"],
+              ["Send one payment", "#manual-pay"],
+              ["Send many", "#bulk-pay"],
+              ["Recurring payables", "#payables"],
+              ["AI drafts", "#mcp-agent"],
+              ["Approvals", "#security"],
             ].map(([label, href]) => (
               <Link key={href} href={href} className="rounded-full px-3 py-2 text-[var(--brand-muted-ink)] hover:bg-white hover:text-[var(--brand-ink)]">
                 {label}
@@ -82,32 +82,36 @@ export default function DocsPage() {
           <div className="pb-12 pt-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-primary)]">Product Manual</p>
             <h1 className="mt-4 max-w-3xl text-5xl font-semibold tracking-[-0.065em] text-[var(--brand-ink-deep)] sm:text-6xl">
-              Private payout drafts, wallet approval, and AI agent control.
+              Create drafts fast. Approve payments carefully.
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--brand-muted-ink)]">
-              CipherPay separates preparation from execution. Humans, CSV uploads, and MCP agents can create drafts.
-              Only the connected wallet can approve payment execution.
+              CipherPay is built for teams that want a cleaner payout workflow. Prepare payments by hand, from a CSV,
+              from recurring payables, or from an AI agent, then approve the final send with the connected wallet.
             </p>
           </div>
 
-          <Section id="overview" title="Overview">
+          <Section id="overview" title="Start Here">
             <p>
-              CipherPay is a Solana payout workspace with private payment rails. Use it for single-recipient payments,
-              bulk CSV payouts, and AI-created drafts through the local MCP server.
+              CipherPay gives you one place to prepare, review, and approve payouts on Solana. It is useful when you
+              want private payment flows, a clear approval step, and a record of what was drafted and sent.
+            </p>
+            <p>
+              The product is organized around four entry points: `Pay` for one-off sends, `Bulk pay` for roster-style
+              batches, `Payables` for recurring recipients, and `Agent Pay` for drafts created by an AI client.
             </p>
           </Section>
 
-          <Section id="payment-flow" title="Payment Flow">
+          <Section id="payment-flow" title="How It Works">
             <p>
-              Every payment moves through the same path: create a draft, validate rows, review totals, approve with wallet,
-              then record status and receipts. External agents stop at draft creation.
+              Every payout follows the same path. First you create a draft. CipherPay then checks the rows, shows you the
+              totals, and waits for a wallet approval before anything is sent.
             </p>
             <p>
-              AI-created drafts also appear on Agent Pay. Selecting `Review & approve` opens the exact `/pay?runId=...`
-              or `/bulk-pay?runId=...` draft inside the standard approval flow.
+              This separation matters. Draft creation can come from a person, a CSV upload, or an AI agent, but the send
+              step always comes back to the app and the connected wallet.
             </p>
             <div className="grid gap-3 sm:grid-cols-4">
-              {["Draft", "Validate", "Approve", "Record"].map((item, index) => (
+              {["Create", "Check", "Approve", "Track"].map((item, index) => (
                 <div key={item} className="rounded-2xl bg-white p-4 shadow-neoSm">
                   <p className="text-xs font-semibold text-[var(--brand-primary)]">0{index + 1}</p>
                   <p className="mt-2 text-sm font-semibold text-[var(--brand-ink)]">{item}</p>
@@ -116,61 +120,86 @@ export default function DocsPage() {
             </div>
           </Section>
 
-          <Section id="manual-pay" title="Manual Pay">
+          <Section id="manual-pay" title="Send One Payment">
             <p>
-              Use `Pay` for a single recipient. Add recipient name, Solana wallet, and amount. The draft autosaves.
-              Send only after the connected wallet is ready to approve.
+              Use `Pay` when you are sending to one recipient. Add a name, wallet, and amount, then review the draft
+              before sending. The page keeps the flow focused so you can move quickly without losing the approval step.
+            </p>
+            <p>
+              This is the best path for ad hoc contractor payments, one-time reimbursements, or testing a payout before
+              running a larger batch.
             </p>
           </Section>
 
-          <Section id="bulk-pay" title="Bulk Pay">
+          <Section id="bulk-pay" title="Send Many">
             <p>
-              Use `Bulk pay` for CSV-style batches. Rows use this schema:
+              Use `Bulk pay` when you already have a list of recipients. Paste or upload a CSV, let CipherPay validate
+              the rows, then approve the batch from one place.
             </p>
-           <CodeBlock
-             code={`recipient_name,wallet_address,amount
+            <p>
+              The expected CSV format is:
+            </p>
+            <CodeBlock
+              code={`recipient_name,wallet_address,amount
 Ava Patel,9B3Y2dXhN6LQW8dyL5o6z8UZqv2q1X3dQ5bTA2sQkz4J,0.01`}
-           />
-         </Section>
-
-          <Section id="payables" title="Payables">
+            />
             <p>
-              Use `Payables` for recurring recipients. Add a recipient, wallet, amount, cadence, and next due date. When
-              a payable is due, select it and create a bulk draft. CipherPay opens the exact `/bulk-pay?runId=...` run for approval.
+              Bulk pay is the right choice for payroll-style runs, monthly vendor batches, or any situation where you
+              want one review surface for many rows.
             </p>
           </Section>
 
-          <Section id="mcp-agent" title="MCP Agent">
+          <Section id="payables" title="Recurring Payables">
             <p>
-              The MCP server lets an AI client create real CipherPay payout drafts. The “MCP token” is just a shared secret that
-              you generate locally.
+              Use `Payables` to maintain a live list of recurring recipients. Each payable stores the recipient, wallet,
+              amount, cadence, and next due date so you do not need to rebuild the same payout list every cycle.
             </p>
-            <p>Generate a token (example):</p>
+            <p>
+              When a payable comes due, select it and turn it into a normal bulk draft. From that point on, the approval
+              flow is the same as any other batch.
+            </p>
+          </Section>
+
+          <Section id="mcp-agent" title="AI Drafts">
+            <p>
+              `Agent Pay` is for teams that want an AI client to prepare work without giving it control over execution.
+              The AI can assemble a real CipherPay draft, but it cannot move funds on its own.
+            </p>
+            <p>
+              The setup is simple: run the local MCP server, give it a token, and point your AI client at CipherPay.
+              Once connected, the agent can create drafts that appear in the app for review.
+            </p>
+            <p>Generate a token:</p>
             <CodeBlock code={`openssl rand -hex 32`} />
             <p>
-              Set it in `web/.env.local` as `MCP_API_TOKEN` (this authorizes requests to `/api/mcp/payout-drafts`). Restart the dev
-              server after changing env.
+              Add that value to `web/.env.local` as `MCP_API_TOKEN`, then restart the app so the local MCP bridge can
+              authorize draft creation.
             </p>
             <CodeBlock code={`MCP_API_TOKEN=replace-with-your-32+char-random-secret`} />
             <p>
-              In your MCP client config, set `CIPHERPAY_MCP_TOKEN` to the exact same value as `MCP_API_TOKEN`.
+              In your MCP client config, set `CIPHERPAY_MCP_TOKEN` to the same value.
             </p>
             <CodeBlock code={mcpConfig} />
-            <p>Example prompt:</p>
+            <p>Example instruction for an AI client:</p>
             <CodeBlock code={aiPrompt} />
             <p>
-              Available tools: `parse_payable_instructions`, `create_payout_draft`, and `draft_payment_from_instructions`.
+              The agent can parse instructions, build rows, and create payout drafts. Those drafts are listed inside
+              CipherPay and can be opened directly for review.
             </p>
             <p>
-              Created drafts are marked as MCP-sourced, listed on Agent Pay, and returned with a direct approval URL for
-              the exact run.
+              This works well for finance ops teams that want to describe payouts in plain language and still keep the
+              actual send step inside a normal wallet approval flow.
             </p>
           </Section>
 
-          <Section id="security" title="Security">
+          <Section id="security" title="Approvals and Control">
             <p>
-              The MCP server cannot sign or execute payments. It uses a bearer token, requires a funding wallet that has
-              already signed into CipherPay, and returns an approval URL. Payment execution remains wallet-approved.
+              CipherPay is designed so preparation and approval stay separate. Drafts can come from multiple sources, but
+              execution still requires the connected wallet inside the app.
+            </p>
+            <p>
+              The MCP server cannot sign transactions or bypass approval. It can only create drafts for a wallet that has
+              already signed into CipherPay once.
             </p>
           </Section>
         </article>

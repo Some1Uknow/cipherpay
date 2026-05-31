@@ -17,7 +17,7 @@ function StatIcon({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[var(--brand-surface)] shadow-neoInsetSm">
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] border border-white/80 bg-[var(--brand-surface)] shadow-neoInsetSm">
       {children}
     </div>
   );

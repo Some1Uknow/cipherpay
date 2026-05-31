@@ -50,15 +50,12 @@ function RowsIcon() {
   );
 }
 
-function KeyOffIcon() {
+function ClockIcon() {
   return (
     <StatIcon>
       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 text-[var(--brand-primary)]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="8.5" cy="12" r="3.5" />
-        <path d="M12 12h7" />
-        <path d="M16 12v2" />
-        <path d="M19 12v2" />
-        <path d="M4 4l16 16" />
+        <circle cx="12" cy="12" r="8" />
+        <path d="M12 8v4l3 2" />
       </svg>
     </StatIcon>
   );
@@ -88,22 +85,22 @@ const stats = [
 
 const architectureStats = [
   {
-    value: "1",
-    label: "shielded deposit per batch",
-    body: "Bulk pay funds one private pool position, then pays row by row from chained change UTXOs.",
+    value: "1→N",
+    label: "UTXO payout fanout",
+    body: "One shielded deposit can fan out into sequential private withdrawals, with each change UTXO feeding the next recipient.",
     icon: <OneDepositIcon />,
   },
   {
     value: "1,000",
-    label: "rows per import",
-    body: "Large payroll-style CSVs can be validated and reviewed in one approval workflow.",
+    label: "proof-aware batch rows",
+    body: "Large payroll-style imports can be validated, queued, and reviewed inside one approval surface without breaking the run model.",
     icon: <RowsIcon />,
   },
   {
-    value: "0",
-    label: "server-side signatures",
-    body: "Drafting, validation, and tracking stay in-app, but signing remains with the connected wallet.",
-    icon: <KeyOffIcon />,
+    value: "<4s",
+    label: "relay settle cadence",
+    body: "The private rail is tuned around a sub-4-second settle window between proof submission, Merkle root refresh, and the next transfer step.",
+    icon: <ClockIcon />,
   },
 ] as const;
 

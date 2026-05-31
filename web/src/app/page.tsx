@@ -11,6 +11,58 @@ type LandingPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+function StatIcon({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-neoInsetSm">
+      {children}
+    </div>
+  );
+}
+
+function OneDepositIcon() {
+  return (
+    <StatIcon>
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 text-[var(--brand-primary)]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="5" width="16" height="5" rx="2" />
+        <path d="M12 10v9" />
+        <path d="M8 15h8" />
+      </svg>
+    </StatIcon>
+  );
+}
+
+function RowsIcon() {
+  return (
+    <StatIcon>
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 text-[var(--brand-primary)]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 7h12" />
+        <path d="M6 12h12" />
+        <path d="M6 17h12" />
+        <circle cx="4" cy="7" r="1" fill="currentColor" stroke="none" />
+        <circle cx="4" cy="12" r="1" fill="currentColor" stroke="none" />
+        <circle cx="4" cy="17" r="1" fill="currentColor" stroke="none" />
+      </svg>
+    </StatIcon>
+  );
+}
+
+function KeyOffIcon() {
+  return (
+    <StatIcon>
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 text-[var(--brand-primary)]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="8.5" cy="12" r="3.5" />
+        <path d="M12 12h7" />
+        <path d="M16 12v2" />
+        <path d="M19 12v2" />
+        <path d="M4 4l16 16" />
+      </svg>
+    </StatIcon>
+  );
+}
 
 const featureCards = [
   {
@@ -32,6 +84,57 @@ const stats = [
   { k: "Totals", v: "Always visible" },
   { k: "Proof of payment", v: "On the way" },
   { k: "Sending", v: "Step by step" },
+] as const;
+
+const architectureStats = [
+  {
+    value: "1",
+    label: "shielded deposit per batch",
+    body: "Bulk pay funds one private pool position, then pays row by row from chained change UTXOs.",
+    icon: <OneDepositIcon />,
+  },
+  {
+    value: "1,000",
+    label: "rows per import",
+    body: "Large payroll-style CSVs can be validated and reviewed in one approval workflow.",
+    icon: <RowsIcon />,
+  },
+  {
+    value: "0",
+    label: "server-side signatures",
+    body: "Drafting, validation, and tracking stay in-app, but signing remains with the connected wallet.",
+    icon: <KeyOffIcon />,
+  },
+] as const;
+
+const footerGroups = [
+  {
+    title: "Product",
+    links: [
+      { label: "Docs", href: "/docs" },
+      { label: "Brand kit", href: "/brand-kit" },
+      { label: "Privacy", href: "/privacy" },
+      { label: "Terms", href: "/terms" },
+    ],
+  },
+  {
+    title: "Workspace",
+    links: [
+      { label: "Pay", href: "/pay" },
+      { label: "Bulk pay", href: "/bulk-pay" },
+      { label: "Payables", href: "/payables" },
+      { label: "Agent pay", href: "/agent-pay" },
+    ],
+  },
+  {
+    title: "Tracking",
+    links: [
+      { label: "History", href: "/history" },
+      { label: "Reports", href: "/reports" },
+      { label: "Invoices", href: "/invoices" },
+      { label: "Recipients", href: "/recipients" },
+    ],
+  },
 ] as const;
 
 export default async function LandingPage({ searchParams }: LandingPageProps) {
@@ -75,7 +178,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
           <div className="flex flex-1 flex-col items-center justify-center pb-12 pt-12">
             <div className="w-full max-w-3xl text-center">
               <h1 className="font-display text-[3.05rem] leading-[0.98] tracking-[-0.06em] sm:text-[4.05rem] lg:text-[4.8rem]">
-                On-chain Private Invocing infrastructure
+                On-chain Private Agentic Invoicing infrastructure
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-[var(--brand-muted-ink)] sm:text-xl">
                 Build a payout in a few simple steps, review it with your team, and keep a clear record of what was sent.
@@ -137,6 +240,19 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
               <div key={k} className="rounded-[24px] bg-[var(--brand-surface)] p-4 shadow-neoInsetSm">
                 <p className="text-sm font-semibold text-[var(--brand-ink)]">{k}</p>
                 <p className="mt-1 text-sm leading-7 text-[var(--brand-muted-ink)]">{v}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 grid gap-4 lg:grid-cols-3">
+            {architectureStats.map((item) => (
+              <div key={item.label} className="flex items-start gap-4 rounded-[24px] border border-white/80 bg-white/88 p-5 shadow-[0_18px_36px_rgba(148,163,184,0.10)]">
+                {item.icon}
+                <div className="min-w-0">
+                  <p className="text-3xl font-semibold tracking-[-0.06em] text-[var(--brand-ink-deep)]">{item.value}</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--brand-ink)]">{item.label}</p>
+                  <p className="mt-2 text-sm leading-7 text-[var(--brand-muted-ink)]">{item.body}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -227,6 +343,44 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
           </Card>
         </div>
       </section>
+
+      <footer className="border-t border-[rgba(148,163,184,0.18)] bg-[linear-gradient(180deg,rgba(247,251,255,0.98),rgba(241,247,253,0.98))]">
+        <div className="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-10">
+          <div className="grid gap-10 lg:grid-cols-[1.2fr_1.8fr]">
+            <div className="max-w-md">
+              <Image
+                src="/logo/cipherpay_branding.png"
+                alt="CipherPay"
+                width={220}
+                height={40}
+                className="h-11 w-auto"
+              />
+              <p className="mt-4 text-sm leading-7 text-[var(--brand-muted-ink)]">
+                Private Solana payout infrastructure for single sends, batch approvals, recurring payables, and AI-prepared drafts.
+              </p>
+            </div>
+
+            <div className="grid gap-8 sm:grid-cols-3">
+              {footerGroups.map((group) => (
+                <div key={group.title}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-muted-ink)]">{group.title}</p>
+                  <div className="mt-4 grid gap-2">
+                    {group.links.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="text-sm text-[var(--brand-ink)] transition-colors hover:text-[var(--brand-primary)]"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

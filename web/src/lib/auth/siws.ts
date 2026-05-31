@@ -24,6 +24,15 @@ export type SiwsSignInInput = {
   expirationTime: string;
 };
 
+export function normalizeSiwsChainId(cluster: string): string {
+  const normalized = cluster.trim().toLowerCase();
+  if (normalized === "mainnet-beta" || normalized === "mainnet") return "mainnet";
+  if (normalized === "devnet") return "devnet";
+  if (normalized === "testnet") return "testnet";
+  if (normalized === "localnet" || normalized === "localhost") return "localnet";
+  return normalized;
+}
+
 export class SiwsMessage {
   readonly domain: string;
   readonly address: string;
@@ -46,24 +55,11 @@ export class SiwsMessage {
   }
 
   toString(): string {
-    const lines = [
-      `${this.domain} wants you to sign in with your Solana account:`,
-      this.address,
-      "",
-      this.statement,
-      "",
-      `URI: ${this.uri ?? this.domain}`,
-      `Version: 1`,
-      `Chain: ${this.chain ?? "solana"}`,
-      `Nonce: ${this.nonce}`,
-      `Issued At: ${this.issuedAt}`,
-      `Expiration Time: ${this.expiresAt}`,
-    ];
-
-    return lines.join("\n");
+    return this.toStandardString();
   }
 
   toStandardString(): string {
+    const chainId = normalizeSiwsChainId(this.chain ?? "mainnet");
     const lines = [
       `${this.domain} wants you to sign in with your Solana account:`,
       this.address,
@@ -72,7 +68,7 @@ export class SiwsMessage {
       "",
       `URI: ${this.uri ?? this.domain}`,
       `Version: 1`,
-      `Chain ID: ${this.chain ?? "solana"}`,
+      `Chain ID: ${chainId}`,
       `Nonce: ${this.nonce}`,
       `Issued At: ${this.issuedAt}`,
       `Expiration Time: ${this.expiresAt}`,
@@ -82,13 +78,14 @@ export class SiwsMessage {
   }
 
   toSignInInput(): SiwsSignInInput {
+    const chainId = normalizeSiwsChainId(this.chain ?? "mainnet");
     return {
       domain: this.domain,
       address: this.address,
       statement: this.statement,
       uri: this.uri ?? this.domain,
       version: "1",
-      chainId: this.chain ?? "solana",
+      chainId,
       nonce: this.nonce,
       issuedAt: this.issuedAt,
       expirationTime: this.expiresAt,

@@ -54,10 +54,20 @@ type ServerConfig = {
 
 let cachedServerConfig: ServerConfig | null = null;
 
+function domainFromAppUrl(appUrl: string): string {
+  try {
+    return new URL(appUrl).host;
+  } catch {
+    return "localhost:3000";
+  }
+}
+
 export const getServerConfig = (): ServerConfig => {
   if (cachedServerConfig) {
     return cachedServerConfig;
   }
+
+  const appUrl = publicConfig.appUrl;
 
   cachedServerConfig = {
     ...publicConfig,
@@ -65,7 +75,7 @@ export const getServerConfig = (): ServerConfig => {
     sessionCookieName: process.env.SESSION_COOKIE_NAME ?? "cipherpay_session",
     sessionTtlHours: parseIntEnv("SESSION_TTL_HOURS", 24),
     sessionSigningSecret: required("SESSION_SIGNING_SECRET"),
-    siwsDomain: process.env.SIWS_DOMAIN ?? "localhost:3000",
+    siwsDomain: process.env.SIWS_DOMAIN ?? domainFromAppUrl(appUrl),
     siwsStatement:
       process.env.SIWS_STATEMENT ??
       "Sign this message to access CipherPay. This does not send a transaction or spend funds.",

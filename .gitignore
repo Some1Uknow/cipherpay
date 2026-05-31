@@ -11,3 +11,4 @@ cipherpay-*.png
 .playwright-mcp/
 videos/**/node_modules/
 videos/
+.vercel

@@ -180,9 +180,6 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
 
           <div className="grid flex-1 content-center pb-10 pt-12">
             <div className="w-full max-w-4xl">
-              <p className="mb-4 inline-flex border border-[var(--brand-border)] bg-white px-2 py-1 font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--brand-muted-ink)]">
-                Private payout rail / v1
-              </p>
               <h1 className="font-display text-[2.55rem] leading-[1.02] tracking-[-0.05em] sm:text-[3.45rem] lg:text-[4.15rem]">
                 On-chain Private Agentic Invoicing infrastructure
               </h1>

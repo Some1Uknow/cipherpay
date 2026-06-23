@@ -93,7 +93,7 @@ function ActionTile({
     <div className="flex items-center gap-3">
       <span
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-surface)] shadow-neoInsetSm",
+          "flex h-9 w-9 items-center justify-center border border-[var(--brand-border)] bg-white",
           tone === "danger" ? "text-[var(--brand-danger)]" : "text-[var(--brand-primary)]",
         )}
       >
@@ -103,7 +103,7 @@ function ActionTile({
     </div>
   );
 
-  const className = "rounded-[24px] bg-[var(--brand-surface)] p-4 text-left shadow-neoSm transition-all duration-200 hover:-translate-y-px hover:shadow-neo";
+  const className = "border border-[var(--brand-border)] bg-white p-4 text-left shadow-neoSm transition-all duration-150 hover:shadow-neo";
 
   if (href) {
     return (
@@ -242,9 +242,9 @@ export function WorkspaceWalletControl() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group inline-flex h-11 items-center gap-2.5 rounded-full bg-[var(--brand-surface)] px-3 shadow-neoSm transition-all duration-200 hover:-translate-y-px hover:shadow-neo"
+        className="group inline-flex h-10 items-center gap-2.5 border border-[#111] bg-white px-3 shadow-neoSm transition-all duration-150 hover:bg-[#111] hover:text-white hover:shadow-neo"
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-primary-gradient-start),var(--brand-primary-gradient-end))] text-white shadow-neoSm">
+        <span className="flex h-7 w-7 items-center justify-center border border-[#111] bg-[var(--brand-primary)] text-white group-hover:border-white group-hover:bg-white group-hover:text-[#111]">
           <WalletIcon className="h-4 w-4" />
         </span>
         <span className="hidden text-left sm:block">
@@ -262,7 +262,7 @@ export function WorkspaceWalletControl() {
           onClose={() => setOpen(false)}
         >
           <div className="grid gap-4">
-            <div className="grid gap-3 rounded-[28px] bg-[var(--brand-surface)] p-4 shadow-neoInsetSm">
+            <div className="grid gap-3 border border-[var(--brand-border)] bg-white p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand-primary)]">Active</p>
@@ -278,18 +278,18 @@ export function WorkspaceWalletControl() {
 
               {walletAddress ? (
                 <div className="grid gap-3">
-                  <div className="rounded-[22px] bg-[var(--brand-surface)] px-4 py-3 shadow-neoInsetSm">
+                  <div className="border border-[var(--brand-border)] bg-white px-4 py-3">
                     <p className="text-xs text-[var(--brand-muted-ink)]">Balance</p>
                     <div className="mt-1 flex items-center justify-between gap-3">
                       <p className="text-2xl font-semibold tracking-[-0.04em] text-[var(--brand-ink)]">{balanceLabel}</p>
-                      <Button variant="secondary" size="sm" className="rounded-full" onClick={() => void refreshBalance()} disabled={isRefreshing}>
+                      <Button variant="secondary" size="sm" onClick={() => void refreshBalance()} disabled={isRefreshing}>
                         <RefreshIcon className={cn("h-4 w-4", isRefreshing ? "animate-spin" : "")} />
                         <span className="ml-2">{isRefreshing ? "Refreshing" : "Refresh"}</span>
                       </Button>
                     </div>
                   </div>
 
-                  <div className="rounded-[22px] bg-[var(--brand-surface)] px-4 py-3 shadow-neoInsetSm">
+                  <div className="border border-[var(--brand-border)] bg-white px-4 py-3">
                     <p className="text-xs text-[var(--brand-muted-ink)]">Funding wallet</p>
                     <p className="mt-1 text-sm font-medium text-[var(--brand-ink)]">
                       {fundingWalletMatches ? "This connected wallet" : "Sign this wallet to use it for payouts"}
@@ -299,7 +299,6 @@ export function WorkspaceWalletControl() {
                         <Button
                           variant="secondary"
                           size="sm"
-                          className="rounded-full"
                           onClick={() => void handleUseConnectedWallet()}
                           disabled={isSyncingSession}
                         >
@@ -312,7 +311,7 @@ export function WorkspaceWalletControl() {
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => setVisible(true)} className="rounded-full">
+                  <Button onClick={() => setVisible(true)}>
                     Choose wallet
                   </Button>
                 </div>

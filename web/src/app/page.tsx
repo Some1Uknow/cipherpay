@@ -17,7 +17,7 @@ function StatIcon({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] border border-white/80 bg-[var(--brand-surface)] shadow-neoInsetSm">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-[var(--brand-border)] bg-white">
       {children}
     </div>
   );
@@ -141,29 +141,26 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
 
   return (
     <main className="bg-[var(--brand-surface)] text-[var(--brand-ink)]">
-      <div className="w-full bg-[#071B4D] text-white">
+      <div className="w-full border-b border-[#111] bg-[#111] text-white">
         <div
-          className="mx-auto max-w-7xl px-6 py-1 text-center font-mono text-xs sm:px-8 lg:px-10"
+          className="mx-auto max-w-7xl px-4 py-1.5 text-left font-mono text-xs sm:px-6 lg:px-8"
           style={{ fontFamily: "Consolas, ui-monospace, SFMono-Regular, Menlo, Monaco, 'Liberation Mono', 'Courier New', monospace" }}
         >
-          Live on Mainnet 🎉
+          Status: Live on Mainnet
         </div>
       </div>
 
-      {/* HERO (structure inspired by base-home.png) */}
-      <section className="relative overflow-hidden" id="product">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(14,91,255,0.14),transparent_48%),radial-gradient(circle_at_top_left,rgba(14,91,255,0.10),transparent_46%)]" />
-
-        <div className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col px-6 py-7 sm:px-8 lg:px-10">
+      <section className="relative border-b border-[var(--brand-border)]" id="product">
+        <div className="mx-auto flex min-h-[82dvh] max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
           <header className="flex items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-3">
-              <div className="">
+              <div className="border border-[var(--brand-border)] bg-white px-2 py-1">
                 <Image
                   src="/logo/cipherpay_branding.png"
                   alt="CipherPay"
                   width={220}
                   height={40}
-                  className="h-12 w-auto"
+                  className="h-10 w-auto"
                   priority
                 />
               </div>
@@ -181,16 +178,19 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
             </div>
           </header>
 
-          <div className="flex flex-1 flex-col items-center justify-center pb-12 pt-12">
-            <div className="w-full max-w-4xl text-center">
-              <h1 className="font-display text-[3.05rem] leading-[0.98] tracking-[-0.06em] sm:text-[4.05rem] lg:text-[4.8rem]">
+          <div className="grid flex-1 content-center pb-10 pt-12">
+            <div className="w-full max-w-4xl">
+              <p className="mb-4 inline-flex border border-[var(--brand-border)] bg-white px-2 py-1 font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--brand-muted-ink)]">
+                Private payout rail / v1
+              </p>
+              <h1 className="font-display text-[2.55rem] leading-[1.02] tracking-[-0.05em] sm:text-[3.45rem] lg:text-[4.15rem]">
                 On-chain Private Agentic Invoicing infrastructure
               </h1>
-              <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-[var(--brand-muted-ink)] sm:text-xl">
+              <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
                 Build a payout in a single prompt and send it privately instantly to thousands of recipients.
               </p>
 
-              <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
+              <div className="mt-7 flex w-full flex-col items-start gap-3 sm:flex-row">
                 <LandingSignInCTA
                   autoStart={autoStartSignIn}
                   nextPath={nextPath}
@@ -204,7 +204,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
                 </Link>
               </div>
 
-              <div className="mt-10 flex items-center justify-center gap-3">
+              <div className="mt-8 flex items-center gap-3 border-t border-[var(--brand-border)] pt-4">
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--brand-muted-ink)]">Powered by</p>
                 <Image
                   src="/solanaLogo.svg"
@@ -221,14 +221,14 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
         </div>
       </section>
 
-      <section id="architecture" className="relative border-t border-[rgba(148,163,184,0.16)]">
-        <div className="mx-auto max-w-[88rem] px-6 py-14 sm:px-8 lg:px-10 lg:py-16">
-          <div className="mx-auto max-w-3xl text-center">
+      <section id="architecture" className="relative border-b border-[var(--brand-border)]">
+        <div className="mx-auto max-w-[88rem] px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+          <div className="max-w-3xl">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">How it works</p>
-            <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">
+            <h2 className="font-display mt-3 text-3xl tracking-[-0.04em] sm:text-4xl">
               Everything you need in one place.
             </h2>
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--brand-muted-ink)] sm:text-base">
               From setup to sending to follow-up, keep the whole payout process easy to understand.
             </p>
           </div>
@@ -239,7 +239,7 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
 
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
             {architectureStats.map((item) => (
-              <div key={item.label} className="flex items-start gap-4 rounded-[24px] bg-[var(--brand-surface)] p-5 shadow-neoInsetSm">
+              <div key={item.label} className="flex items-start gap-4 border border-[var(--brand-border)] bg-white p-4 shadow-neoSm">
                 {item.icon}
                 <div className="min-w-0">
                   <p className="text-3xl font-semibold tracking-[-0.06em] text-[var(--brand-ink-deep)]">{item.value}</p>
@@ -253,20 +253,20 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
       </section>
 
       {/* STATS */}
-      <section className="relative">
-        <div className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col justify-center px-6 py-16 sm:px-8 lg:px-10">
+      <section className="relative border-b border-[var(--brand-border)]">
+        <div className="mx-auto flex max-w-7xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
           <Card className="p-8 sm:p-10">
             <div className="max-w-3xl">
               <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">What you get</p>
-              <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">Clear steps. Fewer mistakes.</h2>
-              <p className="mt-5 text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
+              <h2 className="font-display mt-3 text-3xl tracking-[-0.04em] sm:text-4xl">Clear steps. Fewer mistakes.</h2>
+              <p className="mt-4 text-sm leading-6 text-[var(--brand-muted-ink)] sm:text-base">
                 A simple flow that helps people move from draft to done without second-guessing the details.
               </p>
             </div>
 
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {stats.map((s) => (
-                <div key={s.k} className="rounded-[24px] bg-[var(--brand-surface)] px-4 py-4 shadow-neoInsetSm">
+                <div key={s.k} className="border border-[var(--brand-border)] bg-white px-4 py-3">
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">{s.k}</p>
                   <p className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--brand-ink)]">{s.v}</p>
                 </div>
@@ -277,22 +277,22 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
       </section>
 
       {/* WORKFLOW */}
-      <section id="workflow" className="relative">
-        <div className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col justify-center px-6 py-16 sm:px-8 lg:px-10">
+      <section id="workflow" className="relative border-b border-[var(--brand-border)]">
+        <div className="mx-auto flex max-w-7xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Workflow</p>
-            <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">A simple path from draft to send.</h2>
-            <p className="mt-5 text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
+            <h2 className="font-display mt-3 text-3xl tracking-[-0.04em] sm:text-4xl">A simple path from draft to send.</h2>
+            <p className="mt-4 text-sm leading-6 text-[var(--brand-muted-ink)] sm:text-base">
               Draft it, check it, and send it when you’re ready.
             </p>
           </div>
 
-          <div className="mt-12 grid gap-6 lg:grid-cols-3">
+          <div className="mt-8 grid gap-4 lg:grid-cols-3">
             {featureCards.map((step, index) => (
               <Card key={step.title} className="h-full">
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(14,91,255,0.10)] text-sm font-semibold text-[var(--brand-primary)] shadow-neoInsetSm">
+                    <div className="flex h-9 w-9 items-center justify-center border border-[var(--brand-primary)] bg-white font-mono text-sm font-semibold text-[var(--brand-primary)]">
                       0{index + 1}
                     </div>
                     <CardTitle className="text-lg">{step.title}</CardTitle>
@@ -306,15 +306,14 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
       </section>
 
       {/* CTA */}
-      <section className="relative">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom,rgba(14,91,255,0.12),transparent_55%)]" />
-        <div className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col justify-center px-6 py-16 sm:px-8 lg:px-10">
+      <section className="relative border-b border-[var(--brand-border)]">
+        <div className="mx-auto flex max-w-7xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
           <Card className="p-8 sm:p-10">
             <div className="grid items-center gap-8 lg:grid-cols-[1.2fr_0.8fr]">
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Next step</p>
-                <h2 className="font-display mt-4 text-4xl tracking-[-0.05em] sm:text-5xl">Open the workspace and get started.</h2>
-                <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
+                <h2 className="font-display mt-3 text-3xl tracking-[-0.04em] sm:text-4xl">Open the workspace and get started.</h2>
+                <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--brand-muted-ink)] sm:text-base">
                   Keep the process straightforward so your team can move faster with less back-and-forth.
                 </p>
               </div>
@@ -337,8 +336,8 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
         </div>
       </section>
 
-      <footer className="border-t border-[rgba(148,163,184,0.18)] bg-[linear-gradient(180deg,rgba(247,251,255,0.98),rgba(241,247,253,0.98))]">
-        <div className="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-10">
+      <footer className="bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[1.2fr_1.8fr]">
             <div className="max-w-md">
               <Image

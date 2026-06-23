@@ -34,9 +34,9 @@ export default function BrandKitPage() {
         </section>
 
         <section className="mt-12 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[28px] bg-white p-8 shadow-neoSm">
+          <div className="border border-[var(--brand-border)] bg-white p-8 shadow-neoSm">
             <p className="text-sm font-semibold text-[var(--brand-ink)]">Primary lockup</p>
-            <div className="mt-6 rounded-[24px] bg-[linear-gradient(180deg,#f8fbff,#edf4fb)] p-8">
+            <div className="mt-6 border border-[var(--brand-border)] bg-[var(--brand-surface)] p-8">
               <Image src="/logo/cipherpay_branding.png" alt="CipherPay brand lockup" width={320} height={58} className="h-14 w-auto" priority />
             </div>
             <p className="mt-5 text-sm leading-7 text-[var(--brand-muted-ink)]">
@@ -44,7 +44,7 @@ export default function BrandKitPage() {
             </p>
           </div>
 
-          <div className="rounded-[28px] bg-white p-8 shadow-neoSm">
+          <div className="border border-[var(--brand-border)] bg-white p-8 shadow-neoSm">
             <p className="text-sm font-semibold text-[var(--brand-ink)]">Product voice</p>
             <div className="mt-5 grid gap-3 text-sm leading-7 text-[var(--brand-muted-ink)]">
               <p>Clear, operational, and approval-first.</p>
@@ -57,8 +57,8 @@ export default function BrandKitPage() {
         <section className="mt-12">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {palette.map((color) => (
-              <div key={color.name} className="rounded-[24px] bg-white p-4 shadow-neoSm">
-                <div className="h-28 rounded-[18px]" style={{ backgroundColor: color.value }} />
+              <div key={color.name} className="border border-[var(--brand-border)] bg-white p-4 shadow-neoSm">
+                <div className="h-28 border border-[var(--brand-border)]" style={{ backgroundColor: color.value }} />
                 <p className="mt-4 text-sm font-semibold text-[var(--brand-ink)]">{color.name}</p>
                 <p className="mt-1 font-mono text-xs text-[var(--brand-muted-ink)]">{color.value}</p>
               </div>

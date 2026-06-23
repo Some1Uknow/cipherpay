@@ -297,10 +297,9 @@ function PaymentReceiptModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.38)] px-4 py-6 backdrop-blur-[10px]" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(17,17,17,0.24)] px-4 py-6" role="dialog" aria-modal="true">
       <button type="button" className="absolute inset-0" aria-label="Close receipt" onClick={onClose} />
-      <div className="relative w-full max-w-xl overflow-hidden rounded-[34px] border border-white/80 bg-[linear-gradient(180deg,#ffffff,#f4f9ff)] p-5 shadow-[0_28px_90px_rgba(15,23,42,0.22)] sm:p-6">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(0,82,255,0.14),transparent_72%)]" />
+      <div className="relative w-full max-w-xl overflow-hidden border border-[#111] bg-white p-5 shadow-neo sm:p-6">
         <div className="relative">
           <Badge tone={receipt.status === "success" ? "green" : receipt.status === "recoverable" ? "amber" : "amber"}>
             {receiptTitle(receipt.status)}
@@ -998,10 +997,9 @@ export function PayoutRunWorkspace({
   return (
     <>
       {entryMode === "csv" && csvSourceModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.38)] px-4 py-6 backdrop-blur-[10px]" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(17,17,17,0.24)] px-4 py-6" role="dialog" aria-modal="true">
           <button type="button" className="absolute inset-0" aria-label="Close CSV options" onClick={() => setCsvSourceModalOpen(false)} />
-          <div className="relative w-full max-w-lg overflow-hidden rounded-[32px] border border-white/80 bg-[linear-gradient(180deg,#ffffff,#f4f9ff)] p-5 shadow-[0_28px_90px_rgba(15,23,42,0.22)] sm:p-6">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(0,82,255,0.14),transparent_72%)]" />
+          <div className="relative w-full max-w-lg overflow-hidden border border-[#111] bg-white p-5 shadow-neo sm:p-6">
             <div className="relative">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--brand-muted-ink)]">CSV roster</p>
               <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--brand-ink)]">
@@ -1083,7 +1081,7 @@ export function PayoutRunWorkspace({
 
           <CardContent className="pt-5">
             {mode === "csv" ? (
-              <div className="mt-6 grid gap-4 rounded-[30px] border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.88),rgba(238,247,255,0.7))] p-5 shadow-neoInsetSm">
+              <div className="mt-6 grid gap-4 border border-[var(--brand-border)] bg-white p-5">
                 <div className="grid gap-3 md:grid-cols-3">
                   {[
                     ["1", "Paste roster", "Drop in recipient_name, wallet_address, amount."],
@@ -1373,7 +1371,7 @@ export function PayoutRunWorkspace({
                 </div>
               </>
             )}
-            <div className="mt-6 rounded-[28px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.86),rgba(244,249,255,0.78))] p-4 shadow-neoSm">
+            <div className="mt-6 border border-[var(--brand-border)] bg-white p-4 shadow-neoSm">
               {entryMode === "csv" ? (
                 <>
                   <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-start">

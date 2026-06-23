@@ -12,19 +12,19 @@ export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-[var(--brand-primary)] text-white shadow-neoSm hover:bg-[var(--brand-primary-dark)] hover:shadow-neo active:shadow-neoPrimaryInsetSm",
+    "border-[#111] bg-[var(--brand-primary)] text-white shadow-neoSm hover:bg-[#111] hover:shadow-neo active:shadow-none",
   secondary:
-    "bg-[var(--brand-surface)] text-[var(--brand-ink)] shadow-neoSm hover:shadow-neo active:shadow-neoInsetSm",
+    "border-[#111] bg-white text-[var(--brand-ink)] shadow-neoSm hover:bg-[#111] hover:text-white hover:shadow-neo active:shadow-none",
   ghost:
-    "bg-transparent text-[var(--brand-primary)] hover:bg-[var(--brand-surface)] hover:shadow-neoInsetSm active:shadow-neoInset",
+    "border-[var(--brand-border)] bg-transparent text-[var(--brand-primary)] hover:border-[#111] hover:bg-white hover:text-[#111] active:bg-[var(--brand-surface-muted)]",
   danger:
-    "bg-[var(--brand-danger)] text-white shadow-neoSm hover:opacity-95 active:shadow-neoPrimaryInsetSm",
+    "border-[#111] bg-[var(--brand-danger)] text-white shadow-neoSm hover:bg-[#111] active:shadow-none",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-11 px-4 text-sm",
-  md: "h-11 px-5 text-sm",
-  lg: "h-12 px-6 text-sm",
+  sm: "h-9 px-3 text-[13px]",
+  md: "h-10 px-4 text-sm",
+  lg: "h-11 px-5 text-sm",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -35,10 +35,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type={type}
         className={cn(
           "inline-flex min-w-fit items-center justify-center rounded-2xl font-medium",
-          "transition-[box-shadow,transform,background-color,color] duration-300 ease-out",
+          "border transition-[box-shadow,transform,background-color,color,border-color] duration-150 ease-out",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--brand-surface)]",
           "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none",
-          "hover:-translate-y-[1px] active:translate-y-[0.5px]",
+          "rounded-[2px] active:translate-x-0.5 active:translate-y-0.5",
           variantClasses[variant],
           sizeClasses[size],
           className,

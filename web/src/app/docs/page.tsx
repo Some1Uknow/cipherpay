@@ -41,18 +41,18 @@ function Section({
 
 export default function DocsPage() {
   return (
-    <main className="min-h-screen bg-[#f7fbff] text-[var(--brand-ink)]">
-      <header className="sticky top-0 z-20 border-b border-[rgba(15,23,42,0.08)] bg-[#f7fbff]/92 backdrop-blur-xl">
+    <main className="min-h-screen bg-[var(--brand-surface)] text-[var(--brand-ink)]">
+      <header className="sticky top-0 z-20 border-b border-[var(--brand-border)] bg-[var(--brand-surface)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/logo/cipherpay_logo.png" alt="CipherPay" width={36} height={36} className="h-9 w-9 rounded-xl" priority />
+            <Image src="/logo/cipherpay_logo.png" alt="CipherPay" width={36} height={36} className="h-9 w-9 border border-[var(--brand-border)]" priority />
             <span className="text-sm font-semibold tracking-[-0.02em] text-[var(--brand-ink-deep)]">CipherPay Docs</span>
           </Link>
           <div className="flex items-center gap-3 text-sm font-semibold">
             <Link href="/agent-pay" className="hidden text-[var(--brand-muted-ink)] hover:text-[var(--brand-ink)] sm:inline">
               Agent pay
             </Link>
-            <Link href="/pay" className="rounded-full bg-[var(--brand-primary)] px-4 py-2 text-white shadow-neoSm">
+            <Link href="/pay" className="border border-[#111] bg-[var(--brand-primary)] px-4 py-2 text-white shadow-neoSm hover:bg-[#111]">
               Open app
             </Link>
           </div>
@@ -71,7 +71,7 @@ export default function DocsPage() {
               ["AI drafts", "#mcp-agent"],
               ["Approvals", "#security"],
             ].map(([label, href]) => (
-              <Link key={href} href={href} className="rounded-full px-3 py-2 text-[var(--brand-muted-ink)] hover:bg-white hover:text-[var(--brand-ink)]">
+              <Link key={href} href={href} className="border border-transparent px-3 py-2 text-[var(--brand-muted-ink)] hover:border-[var(--brand-border)] hover:bg-white hover:text-[var(--brand-ink)]">
                 {label}
               </Link>
             ))}
@@ -112,7 +112,7 @@ export default function DocsPage() {
             </p>
             <div className="grid gap-3 sm:grid-cols-4">
               {["Create", "Check", "Approve", "Track"].map((item, index) => (
-                <div key={item} className="rounded-2xl bg-white p-4 shadow-neoSm">
+                <div key={item} className="border border-[var(--brand-border)] bg-white p-4 shadow-neoSm">
                   <p className="text-xs font-semibold text-[var(--brand-primary)]">0{index + 1}</p>
                   <p className="mt-2 text-sm font-semibold text-[var(--brand-ink)]">{item}</p>
                 </div>

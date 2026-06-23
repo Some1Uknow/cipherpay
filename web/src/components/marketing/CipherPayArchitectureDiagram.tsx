@@ -25,22 +25,22 @@ type ArchitectureNodeData = {
 };
 
 const toneStyles: Record<DiagramTone, string> = {
-  blue: "bg-[#f5f8ff] text-[#173f91]",
-  green: "bg-[#f1fbf6] text-[#176246]",
-  amber: "bg-[#fff8e8] text-[#73500b]",
-  violet: "bg-[#f8f5ff] text-[#5630b8]",
+  blue: "bg-white text-[#111]",
+  green: "bg-white text-[#111]",
+  amber: "bg-white text-[#111]",
+  violet: "bg-white text-[#111]",
 };
 
 const edgeColors = {
-  primary: "#0e5bff",
-  settle: "#16845d",
-  evidence: "#7c3aed",
+  primary: "#2563eb",
+  settle: "#111111",
+  evidence: "#5f6368",
 } as const;
 
 function LogoBadge({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`diagram-logo-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/90 bg-white/92 shadow-[0_10px_22px_rgba(148,163,184,0.18)] ${className}`}
+      className={`diagram-logo-soft flex h-10 w-10 shrink-0 items-center justify-center border border-[var(--brand-border)] bg-white ${className}`}
     >
       {children}
     </div>
@@ -50,7 +50,7 @@ function LogoBadge({ children, className = "" }: { children: ReactNode; classNam
 function ArchitectureNode({ data }: NodeProps<Node<ArchitectureNodeData>>) {
   return (
     <div
-      className={`diagram-flow-node w-[198px] rounded-[22px] px-4 py-3.5 shadow-[0_22px_42px_rgba(16,33,58,0.10),0_6px_16px_rgba(148,163,184,0.16)] ring-1 ring-white/70 backdrop-blur-[2px] ${toneStyles[data.tone]}`}
+      className={`diagram-flow-node w-[198px] border border-[#111] px-3 py-3 shadow-neoSm ${toneStyles[data.tone]}`}
     >
       <Handle id="t" type="target" position={Position.Top} className="diagram-handle" />
       <Handle id="l" type="target" position={Position.Left} className="diagram-handle" />
@@ -615,16 +615,16 @@ function FlowBoard({
 
 export function CipherPayArchitectureDiagram() {
   return (
-    <div className="diagram-board rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(247,250,253,0.95))] p-3 shadow-[0_18px_42px_rgba(148,163,184,0.09)] sm:p-4">
+    <div className="diagram-board border border-[var(--brand-border)] bg-white p-3 shadow-neoSm sm:p-4">
       <div className="hidden overflow-x-auto pb-2 lg:block">
         <div className="mx-auto w-[1180px]">
           <FlowBoard nodes={desktopNodes} edges={desktopEdges} width={1180} height={540}>
-            <div className="pointer-events-none absolute inset-x-5 top-5 h-[404px] rounded-[30px] bg-[linear-gradient(180deg,rgba(255,255,255,0.58),rgba(244,247,251,0.80))] shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]" />
+            <div className="pointer-events-none absolute inset-x-5 top-5 h-[404px] border border-[var(--brand-border)] bg-[var(--brand-surface)]" />
 
-            <div className="absolute left-5 top-5 h-[404px] w-[238px] rounded-[28px] bg-[rgba(248,250,252,0.68)] shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_36px_rgba(148,163,184,0.08)]" />
-            <div className="absolute left-[276px] top-5 h-[404px] w-[308px] rounded-[28px] bg-[rgba(248,250,252,0.70)] shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_36px_rgba(148,163,184,0.08)]" />
-            <div className="absolute left-[620px] top-5 h-[404px] w-[540px] rounded-[28px] bg-[rgba(248,250,252,0.70)] shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_36px_rgba(148,163,184,0.08)]" />
-            <div className="absolute left-[276px] top-[428px] h-[96px] w-[884px] rounded-[24px] bg-[rgba(248,250,252,0.70)] shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_16px_28px_rgba(148,163,184,0.08)]" />
+            <div className="absolute left-5 top-5 h-[404px] w-[238px] border border-[var(--brand-border)] bg-white" />
+            <div className="absolute left-[276px] top-5 h-[404px] w-[308px] border border-[var(--brand-border)] bg-white" />
+            <div className="absolute left-[620px] top-5 h-[404px] w-[540px] border border-[var(--brand-border)] bg-white" />
+            <div className="absolute left-[276px] top-[428px] h-[96px] w-[884px] border border-[var(--brand-border)] bg-white" />
 
             <div className="absolute left-[108px] top-[24px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">Operator</div>
             <div className="absolute left-[300px] top-[24px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">CipherPay control plane</div>
@@ -636,7 +636,7 @@ export function CipherPayArchitectureDiagram() {
 
       <div className="lg:hidden">
         <FlowBoard nodes={mobileNodes} edges={mobileEdges} width={332} height={800}>
-          <div className="absolute inset-0 rounded-[26px] border border-[#d7dee8] bg-[rgba(248,250,252,0.82)]" />
+          <div className="absolute inset-0 border border-[var(--brand-border)] bg-white" />
         </FlowBoard>
       </div>
     </div>

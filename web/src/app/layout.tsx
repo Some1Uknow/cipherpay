@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
-import { DM_Sans, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import { AppFrame } from "@/components/layout/AppFrame";
 import { SolanaProvider } from "@/components/SolanaProvider";
 
-const bodyFont = DM_Sans({
+const bodyFont = Geist({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-body",
 });
 
-const displayFont = Plus_Jakarta_Sans({
+const displayFont = Geist_Mono({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",

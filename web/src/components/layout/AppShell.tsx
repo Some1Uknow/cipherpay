@@ -132,15 +132,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-transparent text-[var(--brand-ink)]">
-      <div className="mx-auto flex h-full max-w-[1440px] flex-col px-3 pb-4 pt-4 sm:px-5 lg:px-6">
+    <div className="h-[100dvh] overflow-hidden bg-[var(--brand-surface)] text-[var(--brand-ink)]">
+      <div className="mx-auto flex h-full max-w-[1440px] flex-col px-3 pb-3 pt-3 sm:px-4">
         <header className="z-40 shrink-0">
-          <div className="mx-auto flex items-center justify-between gap-3 rounded-full bg-[var(--brand-surface)] px-3 py-2 shadow-neo sm:px-4">
+          <div className="mx-auto flex items-center justify-between gap-3 border border-[var(--brand-border)] bg-white px-3 py-2 shadow-neo sm:px-4">
             <div className="flex min-w-0 items-center gap-2">
               <Button
                 variant="secondary"
                 size="sm"
-                className="h-10 w-10 rounded-full p-0 lg:hidden"
+                className="h-9 w-9 p-0 lg:hidden"
                 onClick={() => setMobileOpen((value) => !value)}
                 aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
               >
@@ -149,15 +149,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Button
                 variant="secondary"
                 size="sm"
-                className="hidden h-10 w-10 rounded-full p-0 lg:inline-flex"
+                className="hidden h-9 w-9 p-0 lg:inline-flex"
                 onClick={() => setCollapsed((value) => !value)}
                 aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
                 <ChevronIcon className={cn("h-4 w-4 transition-transform duration-200", collapsed ? "rotate-180" : "")} />
               </Button>
 
-              <Link href="/pay" className="flex min-w-0 items-center gap-3 rounded-full px-1.5 py-1">
-                <div className="overflow-hidden rounded-xl shadow-neoSm">
+              <Link href="/pay" className="flex min-w-0 items-center gap-3 px-1.5 py-1">
+                <div className="overflow-hidden border border-[var(--brand-border)]">
                   <Image src="/logo/cipherpay_logo.png" alt="CipherPay" width={36} height={36} className="h-9 w-9" priority />
                 </div>
                 <div className="hidden min-w-0 sm:block">
@@ -179,11 +179,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <div className="relative mt-4 flex flex-1 min-h-0 gap-4 lg:gap-5">
+        <div className="relative mt-3 flex flex-1 min-h-0 gap-3 lg:gap-4">
           {mobileOpen ? (
             <button
               type="button"
-              className="fixed inset-0 z-20 bg-[rgba(15,23,42,0.24)] backdrop-blur-[2px] lg:hidden"
+              className="fixed inset-0 z-20 bg-[rgba(17,17,17,0.24)] lg:hidden"
               aria-label="Close navigation"
               onClick={() => setMobileOpen(false)}
             />
@@ -191,7 +191,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <aside
             className={cn(
-              "fixed bottom-4 left-3 top-[5.25rem] z-30 flex w-[240px] flex-col overflow-y-auto rounded-[30px] bg-[var(--brand-surface)] p-2.5 shadow-neo transition-transform duration-300 lg:sticky lg:top-0 lg:h-full lg:translate-x-0",
+              "fixed bottom-3 left-3 top-[4.75rem] z-30 flex w-[240px] flex-col overflow-y-auto border border-[var(--brand-border)] bg-white p-2 shadow-neo transition-transform duration-200 lg:sticky lg:top-0 lg:h-full lg:translate-x-0",
               mobileOpen ? "translate-x-0" : "-translate-x-[120%]",
               collapsed ? "lg:w-[92px]" : "lg:w-[240px]",
             )}
@@ -207,19 +207,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "group flex items-center gap-3 rounded-[22px] px-2.5 py-2 transition-all duration-200 ease-out",
+                      "group flex items-center gap-3 border px-2.5 py-2 transition-all duration-150 ease-out",
                       active
-                        ? "bg-[var(--brand-surface)] text-[var(--brand-ink)] shadow-neoInsetSm"
-                        : "bg-transparent text-[var(--brand-muted-ink)] hover:bg-[var(--brand-surface)] hover:shadow-neoSm hover:text-[var(--brand-ink)]",
+                        ? "border-[#111] bg-[#111] text-white"
+                        : "border-transparent bg-transparent text-[var(--brand-muted-ink)] hover:border-[var(--brand-border)] hover:bg-[var(--brand-surface)] hover:text-[var(--brand-ink)]",
                       collapsed ? "justify-center px-0" : "",
                     )}
                   >
                     <span
                       className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
+                        "flex h-8 w-8 shrink-0 items-center justify-center border transition-colors duration-150",
                         active
-                          ? "bg-[var(--brand-surface)] text-[var(--brand-primary)] shadow-neoInsetSm"
-                          : "bg-[var(--brand-surface)] text-[var(--brand-muted-ink)] shadow-neoSm group-hover:text-[var(--brand-primary)]",
+                          ? "border-white bg-white text-[#111]"
+                          : "border-[var(--brand-border)] bg-white text-[var(--brand-muted-ink)] group-hover:text-[var(--brand-primary)]",
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -234,7 +234,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </aside>
 
           <div className={cn("min-w-0 flex-1 min-h-0", collapsed ? "lg:pl-1" : "")}>
-            <main className="grid h-full min-w-0 auto-rows-max content-start gap-4 overflow-y-auto rounded-[34px] bg-[var(--brand-surface)] p-4 shadow-neo sm:p-5 lg:p-6">
+            <main className="grid h-full min-w-0 auto-rows-max content-start gap-4 overflow-y-auto border border-[var(--brand-border)] bg-white p-4 shadow-neo sm:p-5">
               {children}
             </main>
           </div>

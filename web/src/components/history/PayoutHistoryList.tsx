@@ -85,12 +85,10 @@ function RunDetailModal({
   const uniquePrivateTxs = Array.from(new Set(run.rows.map((row) => row.privateWithdrawSignature ?? row.txSignature).filter(Boolean))) as string[];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(15,23,42,0.34)] px-4 py-5 backdrop-blur-[10px] sm:px-6 sm:py-7" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(17,17,17,0.24)] px-4 py-5 sm:px-6 sm:py-7" role="dialog" aria-modal="true">
       <button type="button" className="absolute inset-0" aria-label="Close run details" onClick={onClose} />
 
-      <div className="relative w-full max-w-[1120px] overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,248,255,0.94))] shadow-[0_28px_80px_rgba(15,23,42,0.18)]">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,rgba(14,91,255,0.14),transparent_72%)]" />
-
+      <div className="relative w-full max-w-[1120px] overflow-hidden border border-[#111] bg-white shadow-neo">
         <div className="relative flex items-start justify-between gap-4 border-b border-[rgba(196,210,228,0.72)] px-5 py-5 sm:px-7">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-muted-ink)]">Run details</p>

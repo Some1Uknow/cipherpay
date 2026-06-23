@@ -3,40 +3,30 @@
 @tailwind utilities;
 
 :root {
-  /* Neumorphism base surface */
-  --brand-surface: #e6ebf2;
-  --brand-surface-muted: #dde3ec;
-  --brand-card: var(--brand-surface);
+  --brand-surface: #fafaf8;
+  --brand-surface-muted: #f3f3ef;
+  --brand-card: #ffffff;
 
-  /* Text */
-  --brand-ink: #3d4852;
-  --brand-ink-deep: #2b3440;
-  --brand-muted-ink: #6b7280;
+  --brand-ink: #222222;
+  --brand-ink-deep: #111111;
+  --brand-muted-ink: #5f6368;
 
-  --brand-primary: #0e5bff;
-  --brand-primary-dark: #0a49ce;
-  --brand-primary-gradient-start: #0e5bff;
-  --brand-primary-gradient-end: #4d7cff;
-  --brand-primary-soft: rgba(14, 91, 255, 0.12);
+  --brand-primary: #2563eb;
+  --brand-primary-dark: #111111;
+  --brand-primary-soft: rgba(37, 99, 235, 0.08);
 
-  /* Neumorphism avoids borders; edges are defined by shadows */
-  --brand-border: transparent;
+  --brand-border: #dddddd;
 
   --brand-success: #0f9f6e;
   --brand-warning: #b7791f;
   --brand-danger: #d14343;
 
-  /* Shadow colors (RGBA for smooth blending) */
-  --shadow-light: rgba(255, 255, 255, 0.55);
-  --shadow-dark: rgba(163, 177, 198, 0.55);
-
-  /* Shadow presets */
-  --shadow-neo: 9px 9px 16px var(--shadow-dark), -9px -9px 16px var(--shadow-light);
-  --shadow-neo-hover: 12px 12px 20px rgba(163, 177, 198, 0.7), -12px -12px 20px rgba(255, 255, 255, 0.6);
-  --shadow-neo-sm: 5px 5px 10px var(--shadow-dark), -5px -5px 10px var(--shadow-light);
-  --shadow-neo-inset: inset 6px 6px 10px var(--shadow-dark), inset -6px -6px 10px var(--shadow-light);
-  --shadow-neo-inset-deep: inset 10px 10px 20px rgba(163, 177, 198, 0.7), inset -10px -10px 20px rgba(255, 255, 255, 0.6);
-  --shadow-neo-inset-sm: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+  --shadow-neo: 2px 2px 0 0 #000000;
+  --shadow-neo-hover: 3px 3px 0 0 #000000;
+  --shadow-neo-sm: 2px 2px 0 0 #000000;
+  --shadow-neo-inset: inset 0 0 0 1px #dddddd;
+  --shadow-neo-inset-deep: inset 0 0 0 1px #111111;
+  --shadow-neo-inset-sm: inset 0 0 0 1px #dddddd;
 }
 
 * {
@@ -58,7 +48,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-variant-numeric: tabular-nums;
-  line-height: 1.45;
+  font-size: 15px;
+  line-height: 1.55;
 }
 
 .font-display {
@@ -81,7 +72,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(14, 91, 255, 0.18);
+  background: rgba(37, 99, 235, 0.18);
 }
 
 .fade-up {
@@ -220,30 +211,30 @@ textarea {
 
 .wallet-adapter-button {
   align-items: center !important;
-  border: 0 !important;
+  border: 1px solid #111111 !important;
   background: var(--brand-primary) !important;
-  box-shadow: var(--shadow-neo) !important;
-  border-radius: 16px !important;
+  box-shadow: var(--shadow-neo-sm) !important;
+  border-radius: 2px !important;
   font-family: inherit !important;
   font-weight: 600 !important;
   transition: box-shadow 300ms ease-out, transform 300ms ease-out, background-color 300ms ease-out !important;
 }
 
 .wallet-adapter-button:hover {
+  background: #111111 !important;
   box-shadow: var(--shadow-neo-hover) !important;
-  transform: translateY(-1px) !important;
 }
 
 .wallet-adapter-button:active {
-  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.18), inset -3px -3px 6px rgba(255, 255, 255, 0.22) !important;
-  transform: translateY(0.5px) !important;
+  box-shadow: none !important;
+  transform: translate(2px, 2px) !important;
 }
 
 .wallet-adapter-modal-wrapper {
   background: var(--brand-surface) !important;
-  border: 0 !important;
-  border-radius: 32px !important;
-  box-shadow: var(--shadow-neo-hover) !important;
+  border: 1px solid #111111 !important;
+  border-radius: 2px !important;
+  box-shadow: var(--shadow-neo) !important;
 }
 
 .wallet-adapter-modal-title {
@@ -255,8 +246,8 @@ textarea {
 }
 
 .wallet-adapter-modal-list .wallet-adapter-button {
-  background: var(--brand-surface) !important;
-  box-shadow: var(--shadow-neo-inset) !important;
+  background: #ffffff !important;
+  box-shadow: var(--shadow-neo-sm) !important;
   color: var(--brand-ink) !important;
 }
 
@@ -265,8 +256,8 @@ textarea {
 }
 
 .wallet-adapter-modal-overlay {
-  background: rgba(16,33,58,0.18) !important;
-  backdrop-filter: blur(10px);
+  background: rgba(17, 17, 17, 0.24) !important;
+  backdrop-filter: none;
 }
 
 .wallet-adapter-modal-container {
@@ -275,9 +266,10 @@ textarea {
 }
 
 .wallet-adapter-modal-button-close {
-  background: var(--brand-surface) !important;
+  background: #ffffff !important;
   box-shadow: var(--shadow-neo-sm) !important;
-  border-radius: 999px !important;
+  border: 1px solid #111111 !important;
+  border-radius: 2px !important;
 }
 
 .wallet-adapter-modal-button-close svg {

@@ -324,11 +324,11 @@ export function SidebarWalletSection({ collapsed }: SidebarWalletSectionProps) {
         >
           {sheet === "manage" ? (
             <div className="grid gap-4">
-              <section className="rounded-[30px] bg-[linear-gradient(135deg,rgba(14,91,255,0.12),rgba(255,255,255,0.55))] p-5 shadow-[inset_1px_1px_0_rgba(255,255,255,0.55),0_18px_40px_rgba(16,33,58,0.08)]">
+              <section className="border border-[var(--brand-border)] bg-white p-5 shadow-neoSm">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <div className="inline-flex items-center gap-2 rounded-full bg-[rgba(255,255,255,0.72)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-ink)] shadow-neoInsetSm">
-                      <span className="h-2 w-2 rounded-full bg-[var(--brand-success)]" aria-hidden="true" />
+                    <div className="inline-flex items-center gap-2 border border-[var(--brand-border)] bg-white px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-ink)]">
+                      <span className="h-2 w-2 bg-[var(--brand-success)]" aria-hidden="true" />
                       Connected
                     </div>
                     <p className="mt-4 text-xl font-semibold tracking-[-0.04em] text-[var(--brand-ink)]">{walletLabel}</p>
@@ -352,7 +352,7 @@ export function SidebarWalletSection({ collapsed }: SidebarWalletSectionProps) {
                 </div>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-[1.15fr_0.85fr]">
-                  <div className="rounded-[24px] bg-[rgba(255,255,255,0.78)] p-4 shadow-neoInsetSm">
+                  <div className="border border-[var(--brand-border)] bg-white p-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-muted-ink)]">Available balance</p>
                     <p className="mt-2 text-[1.9rem] font-semibold tracking-[-0.05em] text-[var(--brand-ink)] tabular-nums">
                       {balanceLabel}
@@ -360,7 +360,7 @@ export function SidebarWalletSection({ collapsed }: SidebarWalletSectionProps) {
                     </p>
                   </div>
 
-                  <div className="rounded-[24px] bg-[rgba(255,255,255,0.78)] p-4 shadow-neoInsetSm">
+                  <div className="border border-[var(--brand-border)] bg-white p-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-muted-ink)]">Address</p>
                     <p className="mt-2 break-all font-mono-ui text-sm leading-6 text-[var(--brand-ink)]">
                       {walletAddress ?? "Connect a wallet to view your address."}
@@ -387,7 +387,7 @@ export function SidebarWalletSection({ collapsed }: SidebarWalletSectionProps) {
                 </Button>
               </section>
 
-              <section className="rounded-[24px] bg-[rgba(14,91,255,0.08)] px-4 py-3 text-sm leading-6 text-[var(--brand-muted-ink)]">
+              <section className="border border-[var(--brand-border)] bg-[var(--brand-surface)] px-4 py-3 text-sm leading-6 text-[var(--brand-muted-ink)]">
                 Transfers still require wallet approval. Nothing moves until you confirm inside your wallet extension.
               </section>
 
@@ -399,8 +399,8 @@ export function SidebarWalletSection({ collapsed }: SidebarWalletSectionProps) {
 
           {sheet === "receive" ? (
             <div className="grid gap-4">
-              <section className="rounded-[30px] bg-[linear-gradient(135deg,rgba(14,91,255,0.10),rgba(255,255,255,0.6))] p-5 shadow-[inset_1px_1px_0_rgba(255,255,255,0.55),0_18px_40px_rgba(16,33,58,0.08)]">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[rgba(255,255,255,0.82)] text-[var(--brand-primary)] shadow-neoInsetSm">
+              <section className="border border-[var(--brand-border)] bg-white p-5 shadow-neoSm">
+                <div className="inline-flex h-10 w-10 items-center justify-center border border-[var(--brand-border)] bg-white text-[var(--brand-primary)]">
                   <ReceiveIcon className="h-5 w-5" aria-hidden="true" />
                 </div>
                 <p className="mt-4 text-lg font-semibold tracking-[-0.03em] text-[var(--brand-ink)]">Incoming funds</p>
@@ -434,18 +434,18 @@ export function SidebarWalletSection({ collapsed }: SidebarWalletSectionProps) {
           {sheet === "send" ? (
             <div className="grid gap-4">
               {!connected || !publicKey ? (
-                <section className="rounded-[24px] bg-[rgba(255,255,255,0.72)] p-5 text-sm leading-6 text-[var(--brand-muted-ink)] shadow-neoInsetSm">
+                <section className="border border-[var(--brand-border)] bg-white p-5 text-sm leading-6 text-[var(--brand-muted-ink)]">
                   Connect a wallet before you send funds.
                 </section>
               ) : (
                 <>
-                  <section className="rounded-[30px] bg-[linear-gradient(135deg,rgba(14,91,255,0.12),rgba(255,255,255,0.58))] p-5 shadow-[inset_1px_1px_0_rgba(255,255,255,0.55),0_18px_40px_rgba(16,33,58,0.08)]">
+                  <section className="border border-[var(--brand-border)] bg-white p-5 shadow-neoSm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-muted-ink)]">Sending from</p>
                         <p className="mt-2 font-mono-ui text-sm text-[var(--brand-ink)]">{walletAddress ? truncateAddress(walletAddress) : "No wallet"}</p>
                       </div>
-                      <div className="rounded-[22px] bg-[rgba(255,255,255,0.78)] px-4 py-3 text-right shadow-neoInsetSm">
+                      <div className="border border-[var(--brand-border)] bg-white px-4 py-3 text-right">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-muted-ink)]">Available</p>
                         <p className="mt-1 text-lg font-semibold tracking-[-0.04em] text-[var(--brand-ink)] tabular-nums">
                           {balanceLabel} <span className="text-xs font-medium text-[var(--brand-muted-ink)]">SOL</span>

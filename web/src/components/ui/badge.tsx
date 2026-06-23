@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 type BadgeTone = "blue" | "green" | "amber" | "slate";
 
 const toneClasses: Record<BadgeTone, string> = {
-  blue: "border-[rgba(0,82,255,0.15)] bg-[rgba(0,82,255,0.06)] text-[var(--brand-primary)]",
-  green: "border-[rgba(15,159,110,0.15)] bg-[rgba(15,159,110,0.08)] text-[var(--brand-success)]",
-  amber: "border-[rgba(183,121,31,0.18)] bg-[rgba(183,121,31,0.08)] text-[var(--brand-warning)]",
-  slate: "border-[rgba(61,72,82,0.14)] bg-[rgba(61,72,82,0.06)] text-[var(--brand-muted-ink)]",
+  blue: "border-[var(--brand-primary)] bg-white text-[var(--brand-primary)]",
+  green: "border-[var(--brand-success)] bg-white text-[var(--brand-success)]",
+  amber: "border-[var(--brand-warning)] bg-white text-[var(--brand-warning)]",
+  slate: "border-[var(--brand-border)] bg-white text-[var(--brand-muted-ink)]",
 };
 
 export function Badge({
@@ -19,7 +19,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex min-h-7 items-center rounded-full border px-3 text-[11px] font-medium",
+        "inline-flex min-h-6 items-center rounded-[2px] border px-2.5 text-[11px] font-medium uppercase tracking-[0.08em]",
         toneClasses[tone],
         className,
       )}

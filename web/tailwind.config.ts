@@ -13,13 +13,13 @@ export default {
         foreground: "var(--foreground)",
       },
       boxShadow: {
-        neo: "9px 9px 16px rgba(163,177,198,0.6), -9px -9px 16px rgba(255,255,255,0.5)",
-        neoHover: "12px 12px 20px rgba(163,177,198,0.7), -12px -12px 20px rgba(255,255,255,0.6)",
-        neoSm: "5px 5px 10px rgba(163,177,198,0.6), -5px -5px 10px rgba(255,255,255,0.5)",
-        neoInset: "inset 6px 6px 10px rgba(163,177,198,0.6), inset -6px -6px 10px rgba(255,255,255,0.5)",
-        neoInsetDeep: "inset 10px 10px 20px rgba(163,177,198,0.7), inset -10px -10px 20px rgba(255,255,255,0.6)",
-        neoInsetSm: "inset 3px 3px 6px rgba(163,177,198,0.6), inset -3px -3px 6px rgba(255,255,255,0.5)",
-        neoPrimaryInsetSm: "inset 3px 3px 6px rgba(0,0,0,0.18), inset -3px -3px 6px rgba(255,255,255,0.22)",
+        neo: "2px 2px 0 0 #000",
+        neoHover: "3px 3px 0 0 #000",
+        neoSm: "2px 2px 0 0 #000",
+        neoInset: "inset 0 0 0 1px #ddd",
+        neoInsetDeep: "inset 0 0 0 1px #111",
+        neoInsetSm: "inset 0 0 0 1px #ddd",
+        neoPrimaryInsetSm: "inset 0 0 0 1px #111",
       },
       fontFamily: {
         sans: [

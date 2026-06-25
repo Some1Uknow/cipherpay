@@ -2,107 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { LandingSignInCTA } from "@/components/auth/LandingSignInCTA";
-import { CipherPayArchitectureDiagram } from "@/components/marketing/CipherPayArchitectureDiagram";
 import { WalletSignInButton } from "@/components/auth/WalletSignInButton";
+import { AgentInvoiceFlowIllustration, PayrollFlowIllustration } from "@/components/marketing/HomepageFlowIllustrations";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type LandingPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
-
-function StatIcon({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-[var(--brand-border)] bg-white">
-      {children}
-    </div>
-  );
-}
-
-function OneDepositIcon() {
-  return (
-    <StatIcon>
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 text-[var(--brand-primary)]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="4" y="5" width="16" height="5" rx="2" />
-        <path d="M12 10v9" />
-        <path d="M8 15h8" />
-      </svg>
-    </StatIcon>
-  );
-}
-
-function RowsIcon() {
-  return (
-    <StatIcon>
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 text-[var(--brand-primary)]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 7h12" />
-        <path d="M6 12h12" />
-        <path d="M6 17h12" />
-        <circle cx="4" cy="7" r="1" fill="currentColor" stroke="none" />
-        <circle cx="4" cy="12" r="1" fill="currentColor" stroke="none" />
-        <circle cx="4" cy="17" r="1" fill="currentColor" stroke="none" />
-      </svg>
-    </StatIcon>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <StatIcon>
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6 text-[var(--brand-primary)]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="8" />
-        <path d="M12 8v4l3 2" />
-      </svg>
-    </StatIcon>
-  );
-}
-
-const featureCards = [
-  {
-    title: "Start a payout",
-    body: "Add people or invoices by hand or by file, then check everything before you send it.",
-  },
-  {
-    title: "Review and confirm",
-    body: "Look over the amount, the recipients, and any issues before you approve it.",
-  },
-  {
-    title: "Keep a record",
-    body: "See what was sent, what finished, and what still needs attention.",
-  },
-] as const;
-
-const stats = [
-  { k: "Checks before send", v: "Included" },
-  { k: "Totals", v: "Always visible" },
-  { k: "Proof of payment", v: "On the way" },
-  { k: "Sending", v: "Step by step" },
-] as const;
-
-const architectureStats = [
-  {
-    value: "1→N",
-    label: "UTXO payout fanout",
-    body: "One shielded deposit can fan out into sequential private withdrawals, with each change UTXO feeding the next recipient.",
-    icon: <OneDepositIcon />,
-  },
-  {
-    value: "1,000",
-    label: "proof-aware batch rows",
-    body: "Large payroll-style imports can be validated, queued, and reviewed inside one approval surface without breaking the run model.",
-    icon: <RowsIcon />,
-  },
-  {
-    value: "<4s",
-    label: "relay settle cadence",
-    body: "The private rail is tuned around a sub-4-second settle window between proof submission, Merkle root refresh, and the next transfer step.",
-    icon: <ClockIcon />,
-  },
-] as const;
 
 const footerGroups = [
   {
@@ -134,13 +40,163 @@ const footerGroups = [
   },
 ] as const;
 
+const trustFlow = [
+  {
+    step: "01",
+    title: "Add the work",
+    body: "Paste a contributor list, create one payment, or let an agent prepare an invoice for review.",
+  },
+  {
+    step: "02",
+    title: "Check before sending",
+    body: "See who gets paid and how much before the connected wallet approves anything.",
+  },
+  {
+    step: "03",
+    title: "Send privately",
+    body: "Move money without turning your contributor list or invoice trail into a public broadcast.",
+  },
+  {
+    step: "04",
+    title: "Know what happened",
+    body: "Come back to the run, invoice, or history page when someone asks for status.",
+  },
+] as const;
+
+const trustClaims = [
+  {
+    title: "No surprise sends",
+    body: "CipherPay can prepare the payment, but the user still sees the details before approving.",
+  },
+  {
+    title: "Recipient lists stay quieter",
+    body: "The page is built for payroll and invoice flows where people should not see the whole payment graph.",
+  },
+  {
+    title: "Invoice context stays private",
+    body: "Notes for human and agent invoices are handled as private context, not public memo text.",
+  },
+  {
+    title: "Records are easy to find",
+    body: "History, reports, invoices, and recipients are available when a team needs to follow up.",
+  },
+] as const;
+
+function ShieldIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.5 19 6v5.6c0 4.1-2.7 7.7-7 8.9-4.3-1.2-7-4.8-7-8.9V6l7-2.5Z" />
+      <path d="m9.5 12 1.7 1.7 3.5-4" />
+    </svg>
+  );
+}
+
+function TrustSections() {
+  return (
+    <>
+      <section className="flex min-h-screen items-center border-b border-[var(--brand-border)] bg-white">
+        <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+            <div className="max-w-xl">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">How it works</p>
+              <h2 className="font-display mt-3 text-4xl tracking-[-0.055em] text-[var(--brand-ink-deep)] sm:text-5xl">
+                Send payments without making the whole payroll public.
+              </h2>
+              <p className="mt-5 text-base leading-7 text-[var(--brand-muted-ink)]">
+                CipherPay keeps the workflow simple: add the payment work, review it, approve it, then track what happened.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {trustFlow.map((item) => (
+                <div key={item.step} className="border border-[#111] bg-[var(--brand-surface)] p-5 shadow-neoSm">
+                  <p className="text-xs font-semibold text-[var(--brand-primary)]">{item.step}</p>
+                  <p className="mt-4 text-lg font-semibold tracking-[-0.035em] text-[var(--brand-ink-deep)]">{item.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--brand-muted-ink)]">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="flex min-h-screen items-center border-b border-[var(--brand-border)] bg-[var(--brand-surface)]">
+        <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+            <div className="border border-[#111] bg-white p-6 shadow-neo sm:p-8">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Why people can trust it</p>
+              <h2 className="font-display mt-3 max-w-xl text-4xl tracking-[-0.055em] text-[var(--brand-ink-deep)] sm:text-5xl">
+                Know what will happen before money moves.
+              </h2>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--brand-muted-ink)]">
+                The average user should not need to understand every privacy detail to feel in control. They need clear review, private payment paths, and records they can find later.
+              </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Link href="/docs" className="w-full sm:w-auto">
+                  <Button variant="primary" size="lg" className="w-full sm:min-w-[180px]">
+                    Read docs
+                  </Button>
+                </Link>
+                <Link href="/privacy" className="w-full sm:w-auto">
+                  <Button variant="secondary" size="lg" className="w-full sm:min-w-[180px]">
+                    Privacy
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {trustClaims.map((claim) => (
+                <div key={claim.title} className="border border-[var(--brand-border)] bg-white p-5 shadow-neoSm">
+                  <div className="mb-4 flex h-8 w-8 items-center justify-center border border-[#111] bg-[var(--brand-primary)] text-white">
+                    <ShieldIcon className="h-5 w-5" />
+                  </div>
+                  <p className="text-base font-semibold tracking-[-0.035em] text-[var(--brand-ink-deep)]">{claim.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--brand-muted-ink)]">{claim.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="flex min-h-screen items-center border-b border-[var(--brand-border)] bg-white">
+        <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Pick your job</p>
+            <h2 className="font-display mt-3 text-4xl tracking-[-0.055em] text-[var(--brand-ink-deep)] sm:text-5xl">
+              Start where your payment problem already is.
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-[var(--brand-muted-ink)]">
+              Teams do not all pay the same way. Open the workspace that matches the work in front of you.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              ["Bulk pay", "/bulk-pay", "Pay a contributor list from one review screen."],
+              ["Agent pay", "/agent-pay", "Review invoices created by linked agents."],
+              ["History", "/history", "Check what was sent, when, and where it stands."],
+            ].map(([label, href, body]) => (
+              <Link key={href} href={href} className="group border border-[#111] bg-[var(--brand-surface)] p-5 shadow-neoSm transition-transform hover:-translate-y-0.5 hover:shadow-neo">
+                <p className="text-lg font-semibold tracking-[-0.04em] text-[var(--brand-ink-deep)]">{label}</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--brand-muted-ink)]">{body}</p>
+                <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--brand-primary)]">Open workspace</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
 export default async function LandingPage({ searchParams }: LandingPageProps) {
   const resolvedSearchParams = await searchParams;
   const nextPath = typeof resolvedSearchParams?.next === "string" ? resolvedSearchParams.next : null;
   const autoStartSignIn = resolvedSearchParams?.signin === "1";
 
   return (
-    <main className="bg-[var(--brand-surface)] text-[var(--brand-ink)]">
+    <main className="overflow-x-hidden bg-[var(--brand-surface)] text-[var(--brand-ink)]">
       <div className="w-full border-b border-[#111] bg-[#111] text-white">
         <div
           className="mx-auto max-w-7xl px-4 py-1.5 text-left font-mono text-xs sm:px-6 lg:px-8"
@@ -151,39 +207,41 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
       </div>
 
       <section className="relative border-b border-[var(--brand-border)]" id="product">
-        <div className="mx-auto flex min-h-[82dvh] max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
-          <header className="flex items-center justify-between gap-4">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="border border-[var(--brand-border)] bg-white px-2 py-1">
+        <div className="mx-auto flex min-h-[82dvh] w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
+          <header className="flex w-full max-w-[calc(100vw-2rem)] flex-wrap items-center justify-between gap-3 sm:max-w-none sm:gap-4">
+            <Link href="/" className="flex min-w-0 items-center gap-3">
+              <div className="border border-[var(--brand-border)] bg-white px-1.5 py-1 sm:px-2">
                 <Image
                   src="/logo/cipherpay_branding.png"
                   alt="CipherPay"
                   width={220}
                   height={40}
-                  className="h-10 w-auto"
+                  className="h-8 w-auto sm:h-10"
                   priority
                 />
               </div>
             </Link>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <Link href="/docs">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="px-2.5 sm:px-3">
                   Docs
                 </Button>
               </Link>
-              <WalletSignInButton variant="secondary" size="sm" nextPath={nextPath}>
+              <WalletSignInButton variant="secondary" size="sm" nextPath={nextPath} className="hidden px-2.5 sm:inline-flex sm:px-3">
                 Sign in
               </WalletSignInButton>
             </div>
           </header>
 
           <div className="grid flex-1 content-center pb-10 pt-12">
-            <div className="w-full max-w-4xl">
-              <h1 className="font-display text-[2.55rem] leading-[1.02] tracking-[-0.05em] sm:text-[3.45rem] lg:text-[4.15rem]">
-                On-chain Private Agentic Invoicing infrastructure
+            <div className="w-[calc(100vw-2rem)] min-w-0 sm:w-full sm:max-w-4xl">
+              <h1 className="font-display text-[2.05rem] leading-[1.04] tracking-[-0.035em] sm:text-[3.45rem] sm:tracking-[-0.05em] lg:text-[4.15rem]">
+                <span className="block sm:inline">On-chain Private </span>
+                <span className="block sm:inline">Agentic Invoicing </span>
+                <span className="block sm:inline">infrastructure</span>
               </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--brand-muted-ink)] sm:text-lg">
+              <p className="mt-5 w-[calc(100vw-2rem)] max-w-full text-base leading-7 text-[var(--brand-muted-ink)] sm:w-auto sm:max-w-2xl sm:text-lg">
                 Build a payout in a single prompt and send it privately instantly to thousands of recipients.
               </p>
 
@@ -192,11 +250,11 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
                   autoStart={autoStartSignIn}
                   nextPath={nextPath}
                   label="Open workspace"
-                  className="w-full sm:w-auto sm:min-w-[220px]"
+                  className="w-[calc(100vw-2rem)] min-w-0 sm:w-auto sm:min-w-[220px]"
                 />
-                <Link href="#architecture" className="w-full sm:w-auto">
-                  <Button variant="secondary" size="lg" className="w-full sm:min-w-[220px]">
-                    View architecture
+                <Link href="/docs" className="block w-[calc(100vw-2rem)] min-w-0 sm:w-auto">
+                  <Button variant="secondary" size="lg" className="w-full min-w-0 sm:min-w-[220px]">
+                    Read docs
                   </Button>
                 </Link>
               </div>
@@ -218,120 +276,45 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
         </div>
       </section>
 
-      <section id="architecture" className="relative border-b border-[var(--brand-border)]">
-        <div className="mx-auto max-w-[88rem] px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
-          <div className="max-w-3xl">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">How it works</p>
-            <h2 className="font-display mt-3 text-3xl tracking-[-0.04em] sm:text-4xl">
-              Everything you need in one place.
+      <section className="border-b border-[var(--brand-border)] bg-white">
+        <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+          <p className="w-[calc(100vw-2rem)] max-w-full text-lg font-semibold leading-7 tracking-[-0.025em] text-[var(--brand-ink-deep)] sm:w-auto sm:max-w-4xl sm:text-2xl sm:leading-8 sm:tracking-[-0.035em]">
+            private payrolls and invoicing built for DAOs, AI Agents and anonymous entities on the internet.
+          </p>
+        </div>
+      </section>
+
+      <section className="border-b border-[var(--brand-border)]">
+        <div className="mx-auto grid min-h-screen max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-16">
+          <PayrollFlowIllustration />
+          <div className="max-w-xl lg:justify-self-end">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">DAO payroll</p>
+            <h2 className="font-display mt-3 text-4xl tracking-[-0.055em] text-[var(--brand-ink-deep)] sm:text-5xl">
+              Built for DAOs sending payments to hundreds of contributors privately in seconds.
             </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--brand-muted-ink)] sm:text-base">
-              From setup to sending to follow-up, keep the whole payout process easy to understand.
+            <p className="mt-5 text-base leading-7 text-[var(--brand-muted-ink)]">
+              One treasury wallet can approve a payroll run, route it through the shielded rail, and settle a dense recipient list without exposing the full roster on the public surface.
             </p>
           </div>
-
-          <div className="mt-10">
-            <CipherPayArchitectureDiagram />
-          </div>
-
-          <div className="mt-6 grid gap-4 lg:grid-cols-3">
-            {architectureStats.map((item) => (
-              <div key={item.label} className="flex items-start gap-4 border border-[var(--brand-border)] bg-white p-4 shadow-neoSm">
-                {item.icon}
-                <div className="min-w-0">
-                  <p className="text-3xl font-semibold tracking-[-0.06em] text-[var(--brand-ink-deep)]">{item.value}</p>
-                  <p className="mt-1 text-sm font-semibold text-[var(--brand-ink)]">{item.label}</p>
-                  <p className="mt-2 text-sm leading-7 text-[var(--brand-muted-ink)]">{item.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
-      {/* STATS */}
-      <section className="relative border-b border-[var(--brand-border)]">
-        <div className="mx-auto flex max-w-7xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
-          <Card className="p-8 sm:p-10">
-            <div className="max-w-3xl">
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">What you get</p>
-              <h2 className="font-display mt-3 text-3xl tracking-[-0.04em] sm:text-4xl">Clear steps. Fewer mistakes.</h2>
-              <p className="mt-4 text-sm leading-6 text-[var(--brand-muted-ink)] sm:text-base">
-                A simple flow that helps people move from draft to done without second-guessing the details.
-              </p>
-            </div>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {stats.map((s) => (
-                <div key={s.k} className="border border-[var(--brand-border)] bg-white px-4 py-3">
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--brand-muted-ink)]">{s.k}</p>
-                  <p className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--brand-ink)]">{s.v}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      {/* WORKFLOW */}
-      <section id="workflow" className="relative border-b border-[var(--brand-border)]">
-        <div className="mx-auto flex max-w-7xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
-          <div className="max-w-2xl">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Workflow</p>
-            <h2 className="font-display mt-3 text-3xl tracking-[-0.04em] sm:text-4xl">A simple path from draft to send.</h2>
-            <p className="mt-4 text-sm leading-6 text-[var(--brand-muted-ink)] sm:text-base">
-              Draft it, check it, and send it when you’re ready.
+      <section className="border-b border-[var(--brand-border)] bg-[var(--brand-surface-muted)]">
+        <div className="mx-auto grid min-h-screen max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 lg:py-16">
+          <div className="max-w-xl">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Agent invoicing</p>
+            <h2 className="font-display mt-3 text-4xl tracking-[-0.055em] text-[var(--brand-ink-deep)] sm:text-5xl">
+              AI agents can invoice humans and other agents privately for completed work.
+            </h2>
+            <p className="mt-5 text-base leading-7 text-[var(--brand-muted-ink)]">
+              A linked agent can create two encrypted invoices, one to a human and one to another agent, each for $100, while the payment path stays private until the payer approves it.
             </p>
           </div>
-
-          <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            {featureCards.map((step, index) => (
-              <Card key={step.title} className="h-full">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center border border-[var(--brand-primary)] bg-white font-mono text-sm font-semibold text-[var(--brand-primary)]">
-                      0{index + 1}
-                    </div>
-                    <CardTitle className="text-lg">{step.title}</CardTitle>
-                  </div>
-                  <CardDescription className="mt-3 text-sm leading-7">{step.body}</CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
+          <AgentInvoiceFlowIllustration />
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="relative border-b border-[var(--brand-border)]">
-        <div className="mx-auto flex max-w-7xl flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
-          <Card className="p-8 sm:p-10">
-            <div className="grid items-center gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-              <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--brand-primary)]">Next step</p>
-                <h2 className="font-display mt-3 text-3xl tracking-[-0.04em] sm:text-4xl">Open the workspace and get started.</h2>
-                <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--brand-muted-ink)] sm:text-base">
-                  Keep the process straightforward so your team can move faster with less back-and-forth.
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-                <LandingSignInCTA
-                  autoStart={autoStartSignIn}
-                  nextPath={nextPath}
-                  label="Open workspace"
-                  className="w-full"
-                />
-                <Link href="#product" className="w-full">
-                  <Button variant="secondary" size="lg" className="w-full">
-                    Back to top
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </section>
+      <TrustSections />
 
       <footer className="bg-white">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">

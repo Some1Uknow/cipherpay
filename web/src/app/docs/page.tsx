@@ -3,24 +3,11 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { CipherPayArchitectureDiagram } from "@/components/marketing/CipherPayArchitectureDiagram";
 import { CodeBlock } from "@/components/ui/code-block";
 
-const mcpConfig = `{
-  "mcpServers": {
-    "cipherpay": {
-      "command": "pnpm",
-      "args": ["--dir", "<path-to-cipherpay-repo>/web", "mcp:cipherpay"],
-      "env": {
-        "CIPHERPAY_APP_URL": "http://localhost:3000",
-        "CIPHERPAY_MCP_TOKEN": "<same-value-as-MCP_API_TOKEN>",
-        "CIPHERPAY_WALLET_ADDRESS": "your-signed-in-funding-wallet"
-      }
-    }
-  }
-}`;
-
-const aiPrompt = `Create a CipherPay draft:
-Pay Northline Studio 0.018 SOL to GW91mC6M7xTnN4aMvQq5jQ9nG2L3w4LfA1uQw8fLm9rA for invoice INV-1042.`;
+const agentInstall = `npx skills add Some1Uknow/cipherpay`;
+const agentPrompt = `Link yourself to CipherPay with code XXXX-XXXX. Use handle payroll-bot. Set yourself up step by step.`;
 
 function Section({
   id,
@@ -65,10 +52,11 @@ export default function DocsPage() {
             {[
               ["Start here", "#overview"],
               ["How it works", "#payment-flow"],
+              ["Architecture", "#architecture"],
               ["Send one payment", "#manual-pay"],
               ["Send many", "#bulk-pay"],
               ["Recurring payables", "#payables"],
-              ["AI drafts", "#mcp-agent"],
+              ["Agent Pay", "#agent-pay"],
               ["Approvals", "#security"],
             ].map(([label, href]) => (
               <Link key={href} href={href} className="border border-transparent px-3 py-2 text-[var(--brand-muted-ink)] hover:border-[var(--brand-border)] hover:bg-white hover:text-[var(--brand-ink)]">
@@ -86,7 +74,7 @@ export default function DocsPage() {
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--brand-muted-ink)]">
               CipherPay is built for teams that want a cleaner payout workflow. Prepare payments by hand, from a CSV,
-              from recurring payables, or from an AI agent, then approve the final send with the connected wallet.
+              from recurring payables, or from a linked agent. Approval and spend policy stay visible.
             </p>
           </div>
 
@@ -97,7 +85,7 @@ export default function DocsPage() {
             </p>
             <p>
               The product is organized around four entry points: `Pay` for one-off sends, `Bulk pay` for roster-style
-              batches, `Payables` for recurring recipients, and `Agent Pay` for drafts created by an AI client.
+              batches, `Payables` for recurring recipients, and `Agent Pay` for linked agent wallets.
             </p>
           </Section>
 
@@ -107,8 +95,8 @@ export default function DocsPage() {
               totals, and waits for a wallet approval before anything is sent.
             </p>
             <p>
-              This separation matters. Draft creation can come from a person, a CSV upload, or an AI agent, but the send
-              step always comes back to the app and the connected wallet.
+              Agent Pay adds one layer: agents have their own wallet and shielded balance. Owner approvals and policy
+              limits decide when agent funds can move.
             </p>
             <div className="grid gap-3 sm:grid-cols-4">
               {["Create", "Check", "Approve", "Track"].map((item, index) => (
@@ -117,6 +105,21 @@ export default function DocsPage() {
                   <p className="mt-2 text-sm font-semibold text-[var(--brand-ink)]">{item}</p>
                 </div>
               ))}
+            </div>
+          </Section>
+
+          <Section id="architecture" title="Architecture">
+            <p>
+              CipherPay separates drafting, approval, run state, and the shielded transfer rail. The wallet signs the
+              approval, application state tracks payout progress, and the private pool handles deposit, root, nullifier,
+              and withdrawal steps for the recipient flow.
+            </p>
+            <p>
+              The diagram below shows the main product path from wallet sign-in through payout run creation, shielded
+              settlement, recipient delivery, and receipt tracking.
+            </p>
+            <div className="mt-2">
+              <CipherPayArchitectureDiagram />
             </div>
           </Section>
 
@@ -136,9 +139,7 @@ export default function DocsPage() {
               Use `Bulk pay` when you already have a list of recipients. Paste or upload a CSV, let CipherPay validate
               the rows, then approve the batch from one place.
             </p>
-            <p>
-              The expected CSV format is:
-            </p>
+            <p>The expected CSV format is:</p>
             <CodeBlock
               code={`recipient_name,wallet_address,amount
 Ava Patel,9B3Y2dXhN6LQW8dyL5o6z8UZqv2q1X3dQ5bTA2sQkz4J,0.01`}
@@ -160,46 +161,39 @@ Ava Patel,9B3Y2dXhN6LQW8dyL5o6z8UZqv2q1X3dQ5bTA2sQkz4J,0.01`}
             </p>
           </Section>
 
-          <Section id="mcp-agent" title="AI Drafts">
+          <Section id="agent-pay" title="Agent Pay">
             <p>
-              `Agent Pay` is for teams that want an AI client to prepare work without giving it control over execution.
-              The AI can assemble a real CipherPay draft, but it cannot move funds on its own.
+              `Agent Pay` is for teams that want agents to invoice, request funding, and send from an agent-owned wallet
+              without exposing the owner wallet.
             </p>
             <p>
-              The setup is simple: run the local MCP server, give it a token, and point your AI client at CipherPay.
-              Once connected, the agent can create drafts that appear in the app for review.
+              The owner opens Agent Pay and creates a 10-minute linking code. The user installs the CipherPay skill once,
+              then gives the code and chosen handle to the agent in plain language.
             </p>
-            <p>Generate a token:</p>
-            <CodeBlock code={`openssl rand -hex 32`} />
+            <CodeBlock code={agentInstall} />
+            <CodeBlock code={agentPrompt} />
             <p>
-              Add that value to `web/.env.local` as `MCP_API_TOKEN`, then restart the app so the local MCP bridge can
-              authorize draft creation.
-            </p>
-            <CodeBlock code={`MCP_API_TOKEN=replace-with-your-32+char-random-secret`} />
-            <p>
-              In your MCP client config, set `CIPHERPAY_MCP_TOKEN` to the same value.
-            </p>
-            <CodeBlock code={mcpConfig} />
-            <p>Example instruction for an AI client:</p>
-            <CodeBlock code={aiPrompt} />
-            <p>
-              The agent can parse instructions, build rows, and create payout drafts. Those drafts are listed inside
-              CipherPay and can be opened directly for review.
+              The skill handles setup in chat: wallet creation, encrypted local storage, backup verification, and link
+              submission. The owner only confirms the pending link in CipherPay.
             </p>
             <p>
-              This works well for finance ops teams that want to describe payouts in plain language and still keep the
-              actual send step inside a normal wallet approval flow.
+              The agent may ask for one local encryption passphrase. It protects the agent wallet on that machine and is
+              never sent to CipherPay.
+            </p>
+            <p>
+              The skill can create invoices for exact agent handles or human payment links. Human payment links are
+              unguessable; invoice notes are encrypted at rest.
             </p>
           </Section>
 
           <Section id="security" title="Approvals and Control">
             <p>
-              CipherPay is designed so preparation and approval stay separate. Drafts can come from multiple sources, but
-              execution still requires the connected wallet inside the app.
+              CipherPay is designed so ownership, funding, and policy stay explicit. New agents start approval-required.
+              Autonomous spending requires owner-configured per-transaction and rolling 24-hour limits.
             </p>
             <p>
-              The MCP server cannot sign transactions or bypass approval. It can only create drafts for a wallet that has
-              already signed into CipherPay once.
+              Agent runtime policy is trusted in v1. If the agent machine loses its spend key, local compromise can bypass
+              UI policy; keep the encrypted backup safe and revoke agents that are no longer trusted.
             </p>
           </Section>
         </article>

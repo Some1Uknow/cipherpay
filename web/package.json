@@ -10,13 +10,14 @@
     "db:migrate:agent-pay": "node scripts/apply-db-migration.mjs db/005_agent_pay_drafts.sql",
     "db:migrate:payables": "node scripts/apply-db-migration.mjs db/006_payables.sql",
     "db:migrate:private-balances": "node scripts/apply-db-migration.mjs db/007_private_payout_balances.sql",
-    "mcp:cipherpay": "node scripts/cipherpay-mcp.mjs",
+    "db:migrate:agent-pay-overhaul": "node scripts/apply-db-migration.mjs db/008_agent_pay_overhaul.sql",
+    "db:migrate:agent-pay-funding": "node scripts/apply-db-migration.mjs db/009_agent_pay_funding_utxos.sql",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@cloak.dev/sdk": "^0.1.6",
+    "@cloak.dev/sdk": "^0.1.7",
     "@coral-xyz/anchor": "^0.31.1",
     "@solana/spl-token": "^0.4.13",
     "@solana/wallet-adapter-base": "^0.9.27",

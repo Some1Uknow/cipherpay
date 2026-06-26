@@ -3,7 +3,7 @@ create table if not exists payout_runs (
   user_id uuid not null references users(id) on delete cascade,
   wallet_address text not null,
   entry_mode text not null check (entry_mode in ('manual', 'csv')),
-  source text not null default 'app' check (source in ('app', 'mcp', 'payables')),
+  source text not null default 'app' check (source in ('app', 'payables')),
   status text not null check (status in ('draft', 'ready', 'submitting', 'submitted', 'failed', 'completed')),
   total_amount numeric(20, 2) not null default 0,
   item_count integer not null default 0 check (item_count >= 0),

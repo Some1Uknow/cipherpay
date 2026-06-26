@@ -3,11 +3,11 @@ alter table payout_runs
 
 update payout_runs
 set source = 'app'
-where source is null or source not in ('app', 'mcp', 'payables');
+where source is null or source not in ('app', 'payables');
 
 alter table payout_runs
   add constraint payout_runs_source_check
-  check (source in ('app', 'mcp', 'payables'));
+  check (source in ('app', 'payables'));
 
 create table if not exists payables (
   id uuid primary key default gen_random_uuid(),

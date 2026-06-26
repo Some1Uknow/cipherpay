@@ -250,26 +250,6 @@ export async function listPayoutRunsForUser(userId: string, limit = 10): Promise
   return runs.map((run) => mapRun(run, itemsByRun.get(run.id) ?? []));
 }
 
-export async function listMcpDraftPayoutRunsForUser(userId: string, limit = 10): Promise<PersistedPayoutRun[]> {
-  const db = getDb();
-  const runResult = await db.query<RunRow>(
-    `
-      select *
-      from payout_runs
-      where user_id = $1
-        and source = 'mcp'
-        and status in ('draft', 'ready', 'depositing', 'deposit_confirmed', 'paying', 'partially_paid', 'recoverable')
-      order by last_interacted_at desc
-      limit $2
-    `,
-    [userId, limit],
-  );
-
-  const runs = runResult.rows;
-  const itemsByRun = await getItemsForRunIds(runs.map((run) => run.id));
-  return runs.map((run) => mapRun(run, itemsByRun.get(run.id) ?? []));
-}
-
 export async function upsertDraftPayoutRun(params: {
   userId: string;
   walletAddress: string;

@@ -37,6 +37,12 @@ const edgeColors = {
   evidence: "#5f6368",
 } as const;
 
+const DESKTOP_DIAGRAM_WIDTH = 1180;
+const DESKTOP_DIAGRAM_HEIGHT = 540;
+const DESKTOP_DIAGRAM_SCALE = 0.78;
+const DESKTOP_RENDERED_WIDTH = DESKTOP_DIAGRAM_WIDTH * DESKTOP_DIAGRAM_SCALE;
+const DESKTOP_RENDERED_HEIGHT = DESKTOP_DIAGRAM_HEIGHT * DESKTOP_DIAGRAM_SCALE;
+
 function LogoBadge({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <div
@@ -615,22 +621,38 @@ function FlowBoard({
 
 export function CipherPayArchitectureDiagram() {
   return (
-    <div className="diagram-board border border-[var(--brand-border)] bg-white p-3 shadow-neoSm sm:p-4">
-      <div className="hidden overflow-x-auto pb-2 lg:block">
-        <div className="mx-auto w-[1180px]">
-          <FlowBoard nodes={desktopNodes} edges={desktopEdges} width={1180} height={540}>
-            <div className="pointer-events-none absolute inset-x-5 top-5 h-[404px] border border-[var(--brand-border)] bg-[var(--brand-surface)]" />
+    <div className="diagram-board overflow-hidden border border-[var(--brand-border)] bg-white p-3 shadow-neoSm sm:p-4">
+      <div className="hidden lg:block">
+        <div
+          className="mx-auto"
+          style={{
+            width: "100%",
+            maxWidth: `${DESKTOP_RENDERED_WIDTH}px`,
+            height: `${DESKTOP_RENDERED_HEIGHT}px`,
+          }}
+        >
+          <div
+            style={{
+              width: `${DESKTOP_DIAGRAM_WIDTH}px`,
+              height: `${DESKTOP_DIAGRAM_HEIGHT}px`,
+              transform: `scale(${DESKTOP_DIAGRAM_SCALE})`,
+              transformOrigin: "top left",
+            }}
+          >
+            <FlowBoard nodes={desktopNodes} edges={desktopEdges} width={DESKTOP_DIAGRAM_WIDTH} height={DESKTOP_DIAGRAM_HEIGHT}>
+              <div className="pointer-events-none absolute inset-x-5 top-5 h-[404px] border border-[var(--brand-border)] bg-[var(--brand-surface)]" />
 
-            <div className="absolute left-5 top-5 h-[404px] w-[238px] border border-[var(--brand-border)] bg-white" />
-            <div className="absolute left-[276px] top-5 h-[404px] w-[308px] border border-[var(--brand-border)] bg-white" />
-            <div className="absolute left-[620px] top-5 h-[404px] w-[540px] border border-[var(--brand-border)] bg-white" />
-            <div className="absolute left-[276px] top-[428px] h-[96px] w-[884px] border border-[var(--brand-border)] bg-white" />
+              <div className="absolute left-5 top-5 h-[404px] w-[238px] border border-[var(--brand-border)] bg-white" />
+              <div className="absolute left-[276px] top-5 h-[404px] w-[308px] border border-[var(--brand-border)] bg-white" />
+              <div className="absolute left-[620px] top-5 h-[404px] w-[540px] border border-[var(--brand-border)] bg-white" />
+              <div className="absolute left-[276px] top-[428px] h-[96px] w-[884px] border border-[var(--brand-border)] bg-white" />
 
-            <div className="absolute left-[108px] top-[24px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">Operator</div>
-            <div className="absolute left-[300px] top-[24px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">CipherPay control plane</div>
-            <div className="absolute left-[694px] top-[24px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">Private settlement rail</div>
-            <div className="absolute left-[300px] top-[444px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">Evidence loop</div>
-          </FlowBoard>
+              <div className="absolute left-[108px] top-[24px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">Operator</div>
+              <div className="absolute left-[300px] top-[24px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">CipherPay control plane</div>
+              <div className="absolute left-[694px] top-[24px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">Private settlement rail</div>
+              <div className="absolute left-[300px] top-[444px] text-[11px] font-medium tracking-[0.04em] text-[#607086]">Evidence loop</div>
+            </FlowBoard>
+          </div>
         </div>
       </div>
 

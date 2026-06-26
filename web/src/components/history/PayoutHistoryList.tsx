@@ -6,12 +6,15 @@ import { EmptyStateCard } from "@/components/layout/EmptyStateCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import type { AgentActivity } from "@/lib/agent-pay/types";
+import { formatBaseUnits } from "@/lib/agent-pay/amounts";
 import type { PersistedPayoutRun, PayoutRowDraft } from "@/lib/payout-runs/types";
 import { publicConfig } from "@/lib/public-config";
 import { cn } from "@/lib/utils";
 
 type PayoutHistoryListProps = {
   runs: PersistedPayoutRun[];
+  agentActivity?: AgentActivity[];
 };
 
 function formatDate(value: string | null) {
@@ -258,15 +261,43 @@ function RunDetailModal({
   );
 }
 
-export function PayoutHistoryList({ runs }: PayoutHistoryListProps) {
+function agentEventTitle(eventType: string, status?: string) {
+  if (eventType === "agent_funded" && status === "pending_wallet_signature") return "Agent funding intent";
+  const labels: Record<string, string> = {
+    agent_funded: "Agent funded",
+    agent_funding_requested: "Agent funding requested",
+    agent_invoice_issued: "Agent invoice issued",
+    agent_invoice_paid: "Agent invoice paid",
+    agent_payment_sent: "Agent payment sent",
+    agent_payment_received: "Agent payment received",
+    public_withdrawal: "Public withdrawal",
+    funds_returned: "Funds returned",
+    agent_linked: "Agent linked",
+    agent_policy_updated: "Agent policy updated",
+    agent_recovered: "Agent recovered",
+    agent_archived: "Agent archived",
+    ownership_transferred: "Agent ownership transferred",
+  };
+  return labels[eventType] ?? eventType.replaceAll("_", " ");
+}
+
+export function PayoutHistoryList({ runs, agentActivity = [] }: PayoutHistoryListProps) {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const selectedRun = useMemo(() => runs.find((run) => run.id === selectedRunId) ?? null, [runs, selectedRunId]);
+  const timeline = useMemo(
+    () =>
+      [
+        ...agentActivity.map((event) => ({ type: "agent" as const, id: event.id, date: event.createdAt, event })),
+        ...runs.map((run) => ({ type: "run" as const, id: run.id, date: run.lastInteractedAt, run })),
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [agentActivity, runs],
+  );
 
-  if (runs.length === 0) {
+  if (runs.length === 0 && agentActivity.length === 0) {
     return (
       <EmptyStateCard
-        title="No payout runs yet"
-        description="Manual and bulk payout drafts appear here automatically."
+        title="No history yet"
+        description="Manual payouts, bulk runs, and agent payment events appear here automatically."
         actionLabel="Start a payment"
         actionHref="/pay"
       />
@@ -276,32 +307,62 @@ export function PayoutHistoryList({ runs }: PayoutHistoryListProps) {
   return (
     <>
       <div className="mb-3 flex items-center justify-between rounded-[24px] bg-[var(--brand-surface)] px-4 py-3 shadow-neoInsetSm">
-        <p className="text-sm font-semibold text-[var(--brand-ink)]">{runs.length} payout runs</p>
+        <p className="text-sm font-semibold text-[var(--brand-ink)]">{runs.length} payout runs · {agentActivity.length} agent events</p>
         <p className="text-xs text-[var(--brand-muted-ink)]">Newest first</p>
       </div>
 
       <div className="grid content-start gap-3.5">
-        {runs.map((run) => (
-          <button key={run.id} type="button" className="block w-full text-left" onClick={() => setSelectedRunId(run.id)}>
-            <Card className="transition duration-200 hover:-translate-y-0.5 hover:shadow-neoLg">
-              <CardContent className="flex flex-col gap-3 px-5 py-5 sm:px-6 sm:py-5 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-base font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">{runTitle(run)}</p>
-                  <p className="mt-1 text-sm text-[var(--brand-muted-ink)]">
-                    {formatDate(run.lastInteractedAt)} · {recipientCountLabel(run.itemCount)} · {countRows(run, "paid_private")} paid
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 text-left sm:items-end">
-                  <p className="text-sm font-medium text-[var(--brand-ink)]">
-                    {run.totalAmount} {run.assetSymbol}
-                  </p>
-                  <Badge tone="blue">{entryModeLabel(run.entryMode)}</Badge>
-                  <Badge tone={run.status === "completed" ? "green" : run.status === "failed" ? "amber" : "slate"}>{run.status}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </button>
-        ))}
+        {timeline.map((item) => {
+          if (item.type === "agent") {
+            const { event } = item;
+            return (
+              <Card key={item.id} className="overflow-hidden shadow-neoSm">
+                <CardContent className="p-0">
+                  <div className="m-3 grid min-w-0 gap-3 border border-[var(--brand-border)] bg-[var(--brand-surface)] p-4 sm:m-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5">
+                    <div className="min-w-0">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <p className="text-base font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">{agentEventTitle(event.eventType, event.status)}</p>
+                        <Badge tone="blue">Agent Pay</Badge>
+                      </div>
+                      <p className="mt-2 break-words text-sm leading-6 text-[var(--brand-muted-ink)]">
+                        {formatDate(event.createdAt)} · {event.agentHandle ? `@${event.agentHandle}` : "agent"} · {event.summary ?? event.counterparty ?? event.status}
+                      </p>
+                    </div>
+                    <div className="flex min-w-[120px] flex-col gap-2 border-t border-[var(--brand-border)] pt-3 text-left sm:items-end sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
+                      <p className="text-sm font-medium text-[var(--brand-ink)]">
+                        {event.amountBaseUnits ? `${formatBaseUnits(event.amountBaseUnits)} ${event.assetSymbol}` : event.assetSymbol}
+                      </p>
+                      <Badge tone={event.status === "failed" ? "amber" : event.status === "pending" ? "slate" : "green"}>{event.status}</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          const { run } = item;
+          return (
+            <button key={item.id} type="button" className="block w-full text-left" onClick={() => setSelectedRunId(run.id)}>
+              <Card className="transition duration-200 hover:-translate-y-0.5 hover:shadow-neoLg">
+                <CardContent className="flex flex-col gap-3 px-5 py-5 sm:px-6 sm:py-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-base font-semibold tracking-[-0.02em] text-[var(--brand-ink)]">{runTitle(run)}</p>
+                    <p className="mt-1 text-sm text-[var(--brand-muted-ink)]">
+                      {formatDate(run.lastInteractedAt)} · {recipientCountLabel(run.itemCount)} · {countRows(run, "paid_private")} paid
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 text-left sm:items-end">
+                    <p className="text-sm font-medium text-[var(--brand-ink)]">
+                      {run.totalAmount} {run.assetSymbol}
+                    </p>
+                    <Badge tone="blue">{entryModeLabel(run.entryMode)}</Badge>
+                    <Badge tone={run.status === "completed" ? "green" : run.status === "failed" ? "amber" : "slate"}>{run.status}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </button>
+          );
+        })}
       </div>
 
       {selectedRun ? <RunDetailModal run={selectedRun} onClose={() => setSelectedRunId(null)} /> : null}

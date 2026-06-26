@@ -10,7 +10,7 @@ CipherPay is a private payroll + payout workspace for Solana.
   - `/pay` (single payment) and `/bulk-pay` (batch payroll) UX
   - A durable **payout run** store in Postgres (draft → ready → depositing → paying → completed/recoverable)
   - A **ZK proof and shielded pool private payout rail** (deposit once, then withdraw)
-  - An optional **MCP server** for agent-driven draft creation (human-in-the-loop approval)
+  - **Agent Pay** for linked agent wallets, funding requests, invoices, and owner policy review
 
 - **`programs/cipherpay/`** — Anchor program implementing protocol primitives:
   - `Treasury` (authority + run sequence)
@@ -31,7 +31,7 @@ flowchart TB
 
   subgraph App["Next.js App"]
     AUTH["SIWS Auth<br/>challenge + verify"]
-    API["API Routes<br/>drafts, runs, MCP"]
+    API["API Routes<br/>drafts, runs, Agent Pay"]
     RUNS["Payout Run State<br/>status, rows, recovery"]
   end
 
@@ -93,7 +93,7 @@ This is what enables clean recovery: the run can persist `current_change_utxo_co
 - `payout_runs`
   - `entry_mode`: `manual | csv`
   - `status`: `draft | ready | depositing | deposit_confirmed | paying | partially_paid | completed | failed | recoverable`
-  - `source`: `app | mcp` (tracks whether an AI agent created the draft)
+  - `source`: `app | payables`
   - On-chain Metadata: `private_deposit_signature`, `private_status`, `current_change_utxo_commitment`, `recovery_state`, totals in base units
 
 - `payout_run_items`
@@ -108,13 +108,19 @@ This is what enables clean recovery: the run can persist `current_change_utxo_co
 
 ---
 
-## Agent integration (MCP) — “AI drafts, humans approve”
+## Agent Pay
 
 ![Agent pay drafts](web/public/ai_pay.png)
 
-CipherPay includes a **MCP server** that can create a *real* payout draft which can be approved and signed by user then.
+CipherPay Agent Pay links the user's official wallet to one or more agent-owned wallets. The end-user flow is deliberately small:
 
-**Auth model:** the app uses Sign-In With Solana (SIWS) for session creation; the MCP endpoint uses a bearer token (`MCP_API_TOKEN`) to avoid ambient access.
+```bash
+npx skills add Some1Uknow/cipherpay
+```
+
+After installing the skill, the user opens `/agent-pay`, generates a one-use code, and tells the agent: `Link yourself to CipherPay with code XXXX-XXXX.` The skill handles wallet creation, encrypted local state, recovery backup verification, and link submission in chat. The owner approves the pending link inside CipherPay.
+
+Agent APIs use a per-agent bearer token plus fresh agent-wallet signatures for sensitive calls such as funding requests and invoice creation.
 
 ---
 
@@ -131,7 +137,7 @@ Repo:
 
 - **Web app:** ~8.7k TS/TSX LOC
 - **Rust program/tests:** ~1.9k LOC
-- **SQL migrations:** ~349 LOC
+- **SQL migrations:** core payout, payables, private balance, and Agent Pay tables
 - **Payment rail implementation:** shielded deposits + batch payroll + Merkle cache + UTXO recovery
 - **API routes:** 7 Next.js route handlers under `web/src/app/api/**/route.ts`
 - **Anchor instruction modules:** 10 files under `programs/cipherpay/src/instructions/`
@@ -168,8 +174,6 @@ For the private payout rail (defaults are in `web/.env.example`):
 - `NEXT_PUBLIC_PRIVATE_PAYOUT_MINT`
 - `NEXT_PUBLIC_PRIVATE_PAYOUT_DECIMALS`
 
-(Optional for agents) set `MCP_API_TOKEN` (a long random secret). If your MCP client expects `CIPHERPAY_MCP_TOKEN`, set it to the same value.
-
 ### 2) Install + migrate
 
 ```bash
@@ -177,6 +181,9 @@ cd web
 pnpm install
 pnpm db:migrate:private-rail
 pnpm db:migrate:agent-pay
+pnpm db:migrate:payables
+pnpm db:migrate:private-balances
+pnpm db:migrate:agent-pay-overhaul
 ```
 
 ### 3) Start

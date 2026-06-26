@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         <div className="mt-12">
           <Section title="What CipherPay stores" body="CipherPay stores the draft and payout information needed to validate, review, and track a payout run. This includes recipient details, amounts, payout status, and related receipts." />
           <Section title="Wallet approvals" body="CipherPay does not sign transactions on behalf of users. Payment execution remains tied to the connected wallet and its approval flow." />
-          <Section title="Agent-created drafts" body="If you use the MCP flow, the AI client can create drafts but cannot approve or execute payouts. Drafts still return to the product for review." />
+          <Section title="Agent Pay" body="Linked agents have their own wallet, token, and activity records. CipherPay stores encrypted invoice notes and owner-visible agent metadata needed for linking, funding, approvals, and history." />
         </div>
       </div>
     </main>

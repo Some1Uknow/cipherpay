@@ -23,6 +23,7 @@ Apply the shielded-pool private payout migration:
 pnpm db:migrate:private-rail
 pnpm db:migrate:agent-pay
 pnpm db:migrate:payables
+pnpm db:migrate:agent-pay-overhaul
 ```
 
 The migration is idempotent and records applied files in `schema_migrations`.
@@ -35,48 +36,17 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-## MCP Payables Agent
+## Agent Pay
 
-CipherPay includes a local stdio MCP server that lets an AI client create payout drafts for wallet approval.
-It does not execute payments or sign transactions. It creates a real CipherPay draft, shows it on Agent Pay, then the user opens the exact draft and approves execution with the connected wallet.
-
-Add an API token to `web/.env.local`:
-
-```text
-MCP_API_TOKEN=replace-with-a-long-random-secret
-```
-
-Start the app:
+Agent Pay links a user-owned wallet to one or more agent-owned wallets. The user installs the CipherPay skill once:
 
 ```bash
-pnpm dev
+npx skills add Some1Uknow/cipherpay
 ```
 
-Configure your MCP client with:
+After that, onboarding happens in natural language. The owner generates a 10-minute linking code in `/agent-pay`, tells the agent to link with that code, and approves the pending link in CipherPay. The skill handles wallet creation, encrypted local state, backup verification, and link submission internally.
 
-```json
-{
-  "mcpServers": {
-    "cipherpay": {
-      "command": "pnpm",
-      "args": ["--dir", "<path-to-cipherpay-repo>/web", "mcp:cipherpay"],
-      "env": {
-        "CIPHERPAY_APP_URL": "http://localhost:3000",
-        "CIPHERPAY_MCP_TOKEN": "replace-with-a-long-random-secret",
-        "CIPHERPAY_WALLET_ADDRESS": "your-signed-in-funding-wallet"
-      }
-    }
-  }
-}
-```
-
-Available tools:
-
-- `parse_payable_instructions`: parses one-payment-per-line text into payout rows.
-- `create_payout_draft`: creates a real CipherPay draft from structured rows.
-- `draft_payment_from_instructions`: parses text and creates a real draft in one call.
-
-The funding wallet must sign into CipherPay once before the MCP server can create drafts for that user. Created drafts return an approval URL such as `/bulk-pay?runId=...` and also appear in the Agent Pay draft list.
+Owner APIs create link codes, approve link requests, record funding intents, and manage policy limits. Agent APIs use a per-agent bearer token plus fresh agent-wallet signatures for sensitive calls. v1 stores SOL-only shielded balance state and activity; Cloak funding and spend execution are explicit integration points.
 
 ## Payables
 

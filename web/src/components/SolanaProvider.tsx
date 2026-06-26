@@ -8,6 +8,7 @@ import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
 
 import { publicConfig } from "@/lib/public-config";
+import { CIPHERPAY_WALLET_NAME_KEY } from "@/lib/wallet/local-wallet-preference";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
@@ -33,7 +34,7 @@ export function SolanaProvider({ children }: SolanaProviderProps) {
       <WalletProvider
         wallets={wallets}
         autoConnect
-        localStorageKey="cipherpay.walletName"
+        localStorageKey={CIPHERPAY_WALLET_NAME_KEY}
         onError={(error) => {
           console.error("[wallet-adapter]", error, "cause" in error ? error.cause : undefined);
         }}

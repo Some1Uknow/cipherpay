@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -8,6 +8,7 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createWalletSession } from "@/lib/auth/client";
+import { clearStoredWalletPreference } from "@/lib/wallet/local-wallet-preference";
 
 export function WalletAuthPanel() {
   const router = useRouter();
@@ -15,6 +16,10 @@ export function WalletAuthPanel() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    clearStoredWalletPreference();
+  }, []);
 
   const handleWalletSignIn = async () => {
     setErrorMessage(null);

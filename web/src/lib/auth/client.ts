@@ -51,7 +51,10 @@ export async function createWalletSession(params: {
   let signature: string;
   let signedMessage: string | undefined;
 
-  if (params.signIn) {
+  if (params.signMessage) {
+    const signatureBytes = await params.signMessage(new TextEncoder().encode(challengePayload.message));
+    signature = bs58.encode(signatureBytes);
+  } else if (params.signIn) {
     const signInOutput = await params.signIn(challengePayload.signInInput);
     if (signInOutput.account.address !== params.walletAddress) {
       throw new Error("The wallet signed in with a different account. Choose the expected wallet and try again.");
@@ -60,12 +63,7 @@ export async function createWalletSession(params: {
     signature = bs58.encode(signInOutput.signature);
     signedMessage = bs58.encode(signInOutput.signedMessage);
   } else {
-    if (!params.signMessage) {
-      throw new Error("This wallet does not expose message signing. Use a supported Solana wallet.");
-    }
-
-    const signatureBytes = await params.signMessage(new TextEncoder().encode(challengePayload.message));
-    signature = bs58.encode(signatureBytes);
+    throw new Error("This wallet does not expose message signing. Use a supported Solana wallet.");
   }
 
   const verifyResponse = await fetch("/api/auth/verify", {

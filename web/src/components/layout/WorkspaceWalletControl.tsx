@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { createWalletSession } from "@/lib/auth/client";
 import { publicConfig } from "@/lib/public-config";
 import { cn } from "@/lib/utils";
+import { clearStoredWalletPreference } from "@/lib/wallet/local-wallet-preference";
 
 function WalletIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -210,6 +211,7 @@ export function WorkspaceWalletControl() {
 
   const handleSignOut = async () => {
     try {
+      clearStoredWalletPreference();
       await fetch("/api/auth/logout", { method: "POST" });
       await disconnect();
     } finally {

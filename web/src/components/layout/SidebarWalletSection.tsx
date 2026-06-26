@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { clearStoredWalletPreference } from "@/lib/wallet/local-wallet-preference";
 
 type WalletSheet = null | "manage" | "send" | "receive";
 
@@ -193,6 +194,7 @@ export function SidebarWalletSection({ collapsed }: SidebarWalletSectionProps) {
 
   const handleDisconnect = async () => {
     try {
+      clearStoredWalletPreference();
       await disconnect();
       closeSheet();
     } catch {
@@ -277,7 +279,7 @@ export function SidebarWalletSection({ collapsed }: SidebarWalletSectionProps) {
             <WalletIcon className="h-5 w-5" aria-hidden="true" />
           </Button>
 
-          <form action="/api/auth/logout" method="post" className="grid">
+          <form action="/api/auth/logout" method="post" className="grid" onSubmit={clearStoredWalletPreference}>
             <Button type="submit" variant="secondary" size="sm" className="h-11 w-11 p-0" title="Sign out">
               <SignOutIcon className="h-5 w-5" aria-hidden="true" />
               <span className="sr-only">Sign out</span>
@@ -301,7 +303,7 @@ export function SidebarWalletSection({ collapsed }: SidebarWalletSectionProps) {
               {connected ? "Manage wallet" : "Connect wallet"}
             </Button>
 
-            <form action="/api/auth/logout" method="post">
+            <form action="/api/auth/logout" method="post" onSubmit={clearStoredWalletPreference}>
               <Button type="submit" variant="secondary" size="lg" className="w-full">
                 Sign out
               </Button>

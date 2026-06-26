@@ -7,6 +7,7 @@ import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { createWalletSession } from "@/lib/auth/client";
+import { clearStoredWalletPreference } from "@/lib/wallet/local-wallet-preference";
 
 type WalletSignInButtonProps = Omit<ButtonProps, "onClick"> & {
   redirectTo?: string;
@@ -29,7 +30,15 @@ export function WalletSignInButton({
   const router = useRouter();
 
   const { setVisible, visible } = useWalletModal();
-  const { connected, connecting, publicKey, signIn: walletSignIn, signMessage } = useWallet();
+  const {
+    connected,
+    connecting,
+    connect,
+    publicKey,
+    signIn: walletSignIn,
+    signMessage,
+    wallet,
+  } = useWallet();
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [pendingAfterConnect, setPendingAfterConnect] = React.useState(false);
@@ -82,6 +91,7 @@ export function WalletSignInButton({
       return;
     }
 
+    clearStoredWalletPreference();
     onStatusChange?.("connecting");
     setPendingAfterConnect(true);
     setVisible(true);
@@ -98,6 +108,21 @@ export function WalletSignInButton({
       onSignInError?.(message);
     });
   }, [connected, hasSigningCapability, isSubmitting, onSignInError, pendingAfterConnect, publicKey, signIn]);
+
+  React.useEffect(() => {
+    if (!pendingAfterConnect) return;
+    if (visible) return;
+    if (connected) return;
+    if (connecting) return;
+    if (!wallet) return;
+
+    void connect().catch((error) => {
+      setPendingAfterConnect(false);
+      onStatusChange?.("error");
+      const message = error instanceof Error ? error.message : "Wallet connection failed.";
+      onSignInError?.(message);
+    });
+  }, [connect, connected, connecting, onSignInError, onStatusChange, pendingAfterConnect, visible, wallet]);
 
   React.useEffect(() => {
     if (!pendingAfterConnect) return;
@@ -120,10 +145,11 @@ export function WalletSignInButton({
     if (visible) return;
     if (connecting) return;
     if (connected) return;
+    if (wallet) return;
 
     setPendingAfterConnect(false);
     onStatusChange?.("idle");
-  }, [connected, connecting, onStatusChange, pendingAfterConnect, visible]);
+  }, [connected, connecting, onStatusChange, pendingAfterConnect, visible, wallet]);
 
   React.useEffect(() => {
     if (!autoStart) return;

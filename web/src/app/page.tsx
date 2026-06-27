@@ -1,14 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { LandingSignInCTA } from "@/components/auth/LandingSignInCTA";
-import { WalletSignInButton } from "@/components/auth/WalletSignInButton";
 import { AgentInvoiceFlowIllustration, PayrollFlowIllustration } from "@/components/marketing/HomepageFlowIllustrations";
 import { Button } from "@/components/ui/button";
-
-type LandingPageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
+import { WaitlistModal } from "@/components/waitlist/WaitlistModal";
 
 const footerGroups = [
   {
@@ -190,11 +185,7 @@ function TrustSections() {
   );
 }
 
-export default async function LandingPage({ searchParams }: LandingPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const nextPath = typeof resolvedSearchParams?.next === "string" ? resolvedSearchParams.next : null;
-  const autoStartSignIn = resolvedSearchParams?.signin === "1";
-
+export default function LandingPage() {
   return (
     <main className="overflow-x-hidden bg-[var(--brand-surface)] text-[var(--brand-ink)]">
       <div className="w-full border-b border-[#111] bg-[#111] text-white">
@@ -228,9 +219,19 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
                   Docs
                 </Button>
               </Link>
-              <WalletSignInButton variant="secondary" size="sm" nextPath={nextPath} className="hidden px-2.5 sm:inline-flex sm:px-3">
-                Sign in
-              </WalletSignInButton>
+              {/*
+                Launch restore:
+                1. Remove or hide the WaitlistModal button below.
+                2. Restore the WalletSignInButton import from "@/components/auth/WalletSignInButton".
+                3. Uncomment this WalletSignInButton so users can sign in from the homepage again.
+                4. Remove INVITE_CODE from the deployment environment to disable the route/API invite gate.
+              */}
+              {/*
+                <WalletSignInButton variant="secondary" size="sm" nextPath={nextPath} className="hidden px-2.5 sm:inline-flex sm:px-3">
+                  Sign in
+                </WalletSignInButton>
+              */}
+              <WaitlistModal buttonVariant="secondary" buttonSize="sm" buttonClassName="px-2.5 sm:px-3" />
             </div>
           </header>
 
@@ -246,12 +247,23 @@ export default async function LandingPage({ searchParams }: LandingPageProps) {
               </p>
 
               <div className="mt-7 flex w-full flex-col items-start gap-3 sm:flex-row">
-                <LandingSignInCTA
-                  autoStart={autoStartSignIn}
-                  nextPath={nextPath}
-                  label="Open workspace"
-                  className="w-[calc(100vw-2rem)] min-w-0 sm:w-auto sm:min-w-[220px]"
-                />
+                {/*
+                  Launch restore:
+                  1. Remove or hide the WaitlistModal button below.
+                  2. Restore the LandingSignInCTA import from "@/components/auth/LandingSignInCTA".
+                  3. Restore the searchParams/nextPath/autoStartSignIn logic that existed before waitlist mode.
+                  4. Uncomment this LandingSignInCTA to restore the original Open workspace flow.
+                  5. Remove INVITE_CODE from the deployment environment to disable the route/API invite gate.
+                */}
+                {/*
+                  <LandingSignInCTA
+                    autoStart={autoStartSignIn}
+                    nextPath={nextPath}
+                    label="Open workspace"
+                    className="w-[calc(100vw-2rem)] min-w-0 sm:w-auto sm:min-w-[220px]"
+                  />
+                */}
+                <WaitlistModal buttonClassName="w-[calc(100vw-2rem)] min-w-0 sm:w-auto sm:min-w-[220px]" />
                 <Link href="/docs" className="block w-[calc(100vw-2rem)] min-w-0 sm:w-auto">
                   <Button variant="secondary" size="lg" className="w-full min-w-0 sm:min-w-[220px]">
                     Read docs

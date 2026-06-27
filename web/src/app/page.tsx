@@ -260,7 +260,7 @@ export default async function LandingPage() {
               </p>
               <div className="mt-5 inline-flex border border-[#111] bg-white px-4 py-2 shadow-neoSm">
                 <p className="text-sm font-semibold tracking-[-0.02em] text-[var(--brand-ink-deep)]">
-                  {waitlistCount.toLocaleString()} {waitlistCount} people in waitlist
+                  {waitlistCount.toLocaleString()} people in waitlist
                 </p>
               </div>
 

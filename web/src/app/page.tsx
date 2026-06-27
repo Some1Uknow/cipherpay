@@ -4,6 +4,9 @@ import Link from "next/link";
 import { AgentInvoiceFlowIllustration, PayrollFlowIllustration } from "@/components/marketing/HomepageFlowIllustrations";
 import { Button } from "@/components/ui/button";
 import { WaitlistModal } from "@/components/waitlist/WaitlistModal";
+import { countWaitlistSignups } from "@/lib/waitlist/store";
+
+export const dynamic = "force-dynamic";
 
 const footerGroups = [
   {
@@ -185,7 +188,17 @@ function TrustSections() {
   );
 }
 
-export default function LandingPage() {
+async function getWaitlistCount(): Promise<number> {
+  try {
+    return await countWaitlistSignups();
+  } catch {
+    return 0;
+  }
+}
+
+export default async function LandingPage() {
+  const waitlistCount = await getWaitlistCount();
+
   return (
     <main className="overflow-x-hidden bg-[var(--brand-surface)] text-[var(--brand-ink)]">
       <div className="w-full border-b border-[#111] bg-[#111] text-white">
@@ -245,6 +258,11 @@ export default function LandingPage() {
               <p className="mt-5 w-[calc(100vw-2rem)] max-w-full text-base leading-7 text-[var(--brand-muted-ink)] sm:w-auto sm:max-w-2xl sm:text-lg">
                 Build a payout in a single prompt and send it privately instantly to thousands of recipients.
               </p>
+              <div className="mt-5 inline-flex border border-[#111] bg-white px-4 py-2 shadow-neoSm">
+                <p className="text-sm font-semibold tracking-[-0.02em] text-[var(--brand-ink-deep)]">
+                  {waitlistCount.toLocaleString()} {waitlistCount === 1 ? "person has" : "people have"} already joined the waitlist
+                </p>
+              </div>
 
               <div className="mt-7 flex w-full flex-col items-start gap-3 sm:flex-row">
                 {/*

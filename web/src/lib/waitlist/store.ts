@@ -24,3 +24,7 @@ export const createWaitlistSignup = async ({ email, feedback }: CreateWaitlistSi
   );
 };
 
+export const countWaitlistSignups = async (): Promise<number> => {
+  const result = await getDb().query<{ count: string }>("SELECT COUNT(*)::text AS count FROM waitlist_signups");
+  return Number.parseInt(result.rows[0]?.count ?? "0", 10);
+};

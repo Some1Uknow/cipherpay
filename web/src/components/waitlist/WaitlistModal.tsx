@@ -84,7 +84,7 @@ export function WaitlistModal({
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@company.com"
+                  placeholder="you@example.com"
                   required
                 />
               </label>
@@ -114,4 +114,3 @@ export function WaitlistModal({
     </>
   );
 }
-

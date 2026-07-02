@@ -12,7 +12,6 @@
     "db:migrate:private-balances": "node scripts/apply-db-migration.mjs db/007_private_payout_balances.sql",
     "db:migrate:agent-pay-overhaul": "node scripts/apply-db-migration.mjs db/008_agent_pay_overhaul.sql",
     "db:migrate:agent-pay-funding": "node scripts/apply-db-migration.mjs db/009_agent_pay_funding_utxos.sql",
-    "db:migrate:waitlist": "node scripts/apply-db-migration.mjs db/010_waitlist_signups.sql",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
